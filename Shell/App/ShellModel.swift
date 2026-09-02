@@ -12,31 +12,40 @@ final class ShellModel {
     var labPresented = false
 #endif
     var paywallPresented = false
+    var startupMessage: String?
 
     let access: AccessController
     let ads: AdConsentService
     let language: LanguageController
+    let backup: BackupCoordinator
+    private let migrationManager: ShellMigrationManager
 
     init(
         access: AccessController = AccessController(),
         ads: AdConsentService = AdConsentService(),
-        language: LanguageController = LanguageController()
+        language: LanguageController = LanguageController(),
+        backup: BackupCoordinator = BackupCoordinator(),
+        migrationManager: ShellMigrationManager = ShellMigrationManager()
     ) {
         self.access = access
         self.ads = ads
         self.language = language
+        self.backup = backup
+        self.migrationManager = migrationManager
     }
 
-    var shouldRenderAd: Bool {
-        access.shouldShowAd && ads.canRequestAds
-    }
+    var shouldRenderAd: Bool { access.shouldShowAd && ads.canRequestAds }
 
     func start() async {
+        do { try migrationManager.migrateIfNeeded(using: ShellConfiguration.migrations) }
+        catch {
+            startupMessage = error.localizedDescription
+            return
+        }
         await access.purchases.start()
     }
 
     func prepareAdvertisingIfNeeded() async {
         await ads.prepareIfNeeded(advertisingEnabled: access.shouldShowAd)
     }
-
 }

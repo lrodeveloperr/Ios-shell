@@ -17,7 +17,13 @@ struct ShellRootView: View {
 
     var body: some View {
         Group {
-            if legalConsent.requiresPresentation {
+            if let startupMessage = model.startupMessage {
+                ContentUnavailableView {
+                    Label("startup.error.title", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text(startupMessage)
+                }
+            } else if legalConsent.requiresPresentation {
                 OnboardingView(
                     profile: ShellConfiguration.onboarding,
                     isReconsent: legalConsent.isReconsent,
@@ -104,6 +110,7 @@ private struct ShellSettingsToolbar: ViewModifier {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("settings", systemImage: "gearshape") { model.settingsPresented = true }
                     .labelStyle(.iconOnly)
+                    .accessibilityIdentifier("shell.settings")
             }
         }
     }

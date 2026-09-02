@@ -87,6 +87,13 @@ final class ShellTests: XCTestCase {
         XCTAssertTrue(ShellConfiguration.supportedLanguages.contains { $0.id == "en" })
     }
 
+    func testSafeTemplateDefaultsAndSharedLocalizationContract() {
+        XCTAssertFalse(ShellConfiguration.backup.enabled)
+        XCTAssertEqual(LocalizationBaseline.localeIdentifiers.count, 31)
+        XCTAssertEqual(LocalizationBaseline.sharedKeys.count, 18)
+        XCTAssertEqual(ShellContract.currentVersion.split(separator: ".").count, 3)
+    }
+
     private func resolve(_ mode: MonetizationMode, entitled: Bool, checking: Bool, free: Bool) -> AccessDecision {
         AccessController.resolveDecision(mode: mode, isEntitled: entitled, isChecking: checking, hasFreeActionRemaining: free)
     }

@@ -11,6 +11,15 @@ struct SettingsView: View {
                     NavigationLink { PaywallView() } label: {
                         SettingsLabel("upgrade", subtitle: "upgrade.subtitle", symbol: "sparkles")
                     }
+                    .accessibilityIdentifier("shell.settings.upgrade")
+                }
+            }
+
+            if model.backup.isEnabled {
+                Section {
+                    NavigationLink { BackupSettingsView() } label: {
+                        SettingsLabel("backup", subtitle: model.backup.provider.providerName, symbol: "externaldrive")
+                    }
                 }
             }
 
@@ -58,16 +67,12 @@ struct SettingsView: View {
 #endif
 
             Section {
-                Text("settings.footer")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                Text("settings.footer").font(.footnote).foregroundStyle(.secondary)
             }
         }
         .navigationTitle("settings")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) { Button("done") { dismiss() } }
-        }
+        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("done") { dismiss() } } }
     }
 
     private var languageSubtitle: String {
@@ -110,9 +115,7 @@ private struct LanguageView: View {
                 }
             }
             .pickerStyle(.inline)
-            Text("language.help")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            Text("language.help").font(.footnote).foregroundStyle(.secondary)
         }
         .navigationTitle("language")
     }

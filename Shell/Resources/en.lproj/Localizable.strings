@@ -87,3 +87,15 @@
 "legal.privacy.body" = "REPLACE_WITH_REVIEWED_PRIVACY_POLICY";
 "legal.terms.body" = "REPLACE_WITH_REVIEWED_TERMS_OF_USE";
 "legal.openReviewedDocument" = "Open full document";
+
+"backup" = "Backup";
+"backup.create" = "Create backup";
+"backup.available" = "Available backups";
+"backup.none" = "No backups available";
+"backup.restore" = "Restore backup";
+"backup.keepDevice" = "Keep device data";
+"backup.replaceDevice" = "Replace device data";
+"backup.localFirstNotice" = "Backups are optional and use the provider configured for this app.";
+"backup.conflictNotice" = "Choose explicitly how a restore handles existing device data.";
+"backup.error" = "Backup error";
+"startup.error.title" = "Update required";

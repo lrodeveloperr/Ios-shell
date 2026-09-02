@@ -1,5 +1,7 @@
-import GoogleMobileAds
 import Observation
+
+#if ADS_ENABLED
+import GoogleMobileAds
 import UserMessagingPlatform
 
 @MainActor
@@ -23,7 +25,6 @@ final class AdConsentService {
             try await ConsentForm.loadAndPresentIfRequired(from: nil)
             updateStateAndStartIfAllowed()
         } catch {
-            // Fail closed: no SDK start and no ad request after consent errors.
             canRequestAds = false
             preparationAttempted = false
             isPrivacyOptionsRequired = ConsentInformation.shared.privacyOptionsRequirementStatus == .required
@@ -59,3 +60,25 @@ final class AdConsentService {
         MobileAds.shared.start()
     }
 }
+#else
+/// Compile-time no-op used by the default target. Google Mobile Ads and UMP are
+/// not linked, initialized, or referenced in the produced application binary.
+@MainActor
+@Observable
+final class AdConsentService {
+    private(set) var canRequestAds = false
+    private(set) var isPrivacyOptionsRequired = false
+    private(set) var isGatheringConsent = false
+    private(set) var initializationComplete = false
+    private(set) var preparationAttempted = false
+    var message: String?
+
+    func prepareIfNeeded(advertisingEnabled: Bool) async {
+        if advertisingEnabled {
+            message = "Advertising requires the ShellAds target."
+        }
+    }
+
+    func presentPrivacyOptions() async {}
+}
+#endif

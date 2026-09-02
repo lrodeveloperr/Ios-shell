@@ -9,23 +9,38 @@ packages:
   GoogleMobileAds:
     url: https://github.com/googleads/swift-package-manager-google-mobile-ads.git
     from: 13.0.0
-targets:
-  Shell:
+targetTemplates:
+  ShellApplication:
     type: application
     platform: iOS
     sources:
       - Shell
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.goodusestudios.shelllab
         PRODUCT_NAME: Shell
         MARKETING_VERSION: 1.0
         CURRENT_PROJECT_VERSION: 1
         SWIFT_VERSION: 6.0
-        INFOPLIST_FILE: Shell/Resources/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1,2"
+targets:
+  # Default target. It neither links nor initializes any advertising SDK and its
+  # Info.plist contains no GAD or SKAdNetwork keys.
+  Shell:
+    templates: [ShellApplication]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.goodusestudios.shelllab
+        INFOPLIST_FILE: Shell/Resources/Info.plist
+  # Select this target only for a reviewed ad-supported derived app.
+  ShellAds:
+    templates: [ShellApplication]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.goodusestudios.shelllab.ads
+        INFOPLIST_FILE: Shell/Resources/Info-Ads.plist
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) ADS_ENABLED"
     dependencies:
       - package: GoogleMobileAds
         product: GoogleMobileAds
@@ -39,12 +54,28 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+  ShellUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - ShellUITests
+    dependencies:
+      - target: Shell
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   Shell:
     build:
       targets:
         Shell: all
         ShellTests: [test]
+        ShellUITests: [test]
     test:
       targets:
         - ShellTests
+        - ShellUITests
+  ShellAds:
+    build:
+      targets:
+        ShellAds: all

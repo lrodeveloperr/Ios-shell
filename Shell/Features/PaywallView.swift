@@ -1,6 +1,8 @@
 import StoreKit
 import SwiftUI
 
+/// Commerce surfaces deliberately contain no app icon, logo, custom image
+/// asset, or brand mark. Keep all benefits factual and product-specific.
 struct PaywallView: View {
     @Environment(ShellModel.self) private var model
     @Environment(\.dismiss) private var dismiss
@@ -8,11 +10,11 @@ struct PaywallView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Image(systemName: "sparkles").font(.largeTitle).foregroundStyle(.tint)
                 Text("paywall.title").font(.largeTitle.bold())
                 Text("paywall.message").foregroundStyle(.secondary)
                 ForEach(["paywall.benefit.unlimited", "paywall.benefit.noAds", "paywall.benefit.support"], id: \.self) { benefit in
-                    Label(LocalizedStringKey(benefit), systemImage: "checkmark.circle.fill").symbolRenderingMode(.hierarchical)
+                    Label(LocalizedStringKey(benefit), systemImage: "checkmark.circle.fill")
+                        .symbolRenderingMode(.hierarchical)
                 }
 
                 if let product = model.access.purchases.primaryProduct {
@@ -27,10 +29,11 @@ struct PaywallView: View {
                                 Text(product.displayPrice)
                             }
                         }
-                            .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
+                    .accessibilityIdentifier("shell.paywall.purchase")
                 } else {
                     ProgressView("paywall.loadingProduct").frame(maxWidth: .infinity)
                 }
@@ -43,6 +46,7 @@ struct PaywallView: View {
 
                 Button("paywall.restore") { Task { await model.access.purchases.restore() } }
                     .frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("shell.paywall.restore")
 
                 HStack {
                     Link("privacy", destination: ShellConfiguration.legal.privacyURL)
@@ -56,6 +60,7 @@ struct PaywallView: View {
             .frame(maxWidth: .infinity)
         }
         .navigationTitle("upgrade")
+        .accessibilityIdentifier("shell.paywall")
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("done") { dismiss() } } }
         .onChange(of: model.access.purchases.isEntitled) { _, entitled in
             if entitled { dismiss() }

@@ -29,6 +29,7 @@ struct OnboardingView: View {
                     }
                     .toggleStyle(CheckboxToggleStyle())
                     .accessibilityHint(Text("onboarding.accept.hint"))
+                    .accessibilityIdentifier("shell.onboarding.accept")
                 }
 
                 Button(primaryButtonTitle) { advanceOrAccept() }
@@ -36,6 +37,7 @@ struct OnboardingView: View {
                     .controlSize(.large)
                     .frame(maxWidth: .infinity)
                     .disabled(showsAcceptance && !accepted)
+                    .accessibilityIdentifier("shell.onboarding.primary")
 
                 if profile == .guidedTour && page > 0 {
                     Button("back") { withAnimation { page -= 1 } }

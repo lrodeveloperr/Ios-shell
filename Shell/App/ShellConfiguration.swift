@@ -11,8 +11,6 @@ enum ShellConfiguration {
         termsURL: URL(string: "https://example.com/terms")!
     )
 
-    // `.legalOnly` is the preferred no-tour, one-screen onboarding profile.
-    // Every profile still requires the same explicit legal acceptance checkbox.
     static let onboarding: OnboardingProfile = .legalOnly
 
     static let monetization = MonetizationConfiguration(
@@ -26,12 +24,22 @@ enum ShellConfiguration {
         bannerUnitID: "ca-app-pub-3940256099942544/2435281174"
     )
 
+    /// Cloud is absent by default. A derived app must enable this and inject an
+    /// app-owned provider only after privacy, entitlements and conflict UX review.
+    static let backup = BackupConfiguration(enabled: false)
+
+    /// New installs record the current contract. Derived apps add an explicit,
+    /// ordered step here before adopting a breaking shell contract.
+    static let migrations: [ShellMigration] = []
+
     static let destinations: [ShellDestination] = [
         .init(id: "home", titleKey: "destination.home", symbol: "house"),
         .init(id: "library", titleKey: "destination.library", symbol: "tray.full"),
         .init(id: "activity", titleKey: "destination.activity", symbol: "chart.xyaxis.line"),
     ]
 
+    /// Only locales with complete app text belong here. The 31-locale shared
+    /// terminology baseline is tracked separately in LocalizationBaseline.swift.
     static let supportedLanguages: [AppLanguage] = [
         .init(id: "system", displayName: "Follow system"),
         .init(id: "en", displayName: "English"),
@@ -55,6 +63,10 @@ struct AdvertisingConfiguration: Sendable {
     let bannerUnitID: String
 }
 
+struct BackupConfiguration: Sendable {
+    let enabled: Bool
+}
+
 struct MonetizationConfiguration: Sendable {
     let mode: MonetizationMode
     let freeSuccessfulActions: Int
@@ -72,13 +84,8 @@ struct MonetizationConfiguration: Sendable {
         }
     }
 
-    var includesAdvertising: Bool {
-        mode == .ads || mode == .adsWithRemovePurchase
-    }
-
-    var includesPurchase: Bool {
-        !productIDs.isEmpty
-    }
+    var includesAdvertising: Bool { mode == .ads || mode == .adsWithRemovePurchase }
+    var includesPurchase: Bool { !productIDs.isEmpty }
 }
 
 struct ShellDestination: Hashable, Identifiable, Sendable {

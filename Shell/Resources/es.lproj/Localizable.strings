@@ -87,3 +87,15 @@
 "legal.privacy.body" = "REPLACE_WITH_REVIEWED_PRIVACY_POLICY";
 "legal.terms.body" = "REPLACE_WITH_REVIEWED_TERMS_OF_USE";
 "legal.openReviewedDocument" = "Abrir el documento completo";
+
+"backup" = "Copia de seguridad";
+"backup.create" = "Crear copia de seguridad";
+"backup.available" = "Copias disponibles";
+"backup.none" = "No hay copias disponibles";
+"backup.restore" = "Restaurar copia";
+"backup.keepDevice" = "Conservar los datos del dispositivo";
+"backup.replaceDevice" = "Sustituir los datos del dispositivo";
+"backup.localFirstNotice" = "Las copias son opcionales y usan el proveedor configurado para esta aplicación.";
+"backup.conflictNotice" = "Elige expresamente cómo debe tratar la restauración los datos existentes.";
+"backup.error" = "Error de copia de seguridad";
+"startup.error.title" = "Actualización necesaria";

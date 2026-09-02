@@ -1,5 +1,7 @@
-import GoogleMobileAds
 import SwiftUI
+
+#if ADS_ENABLED
+import GoogleMobileAds
 import UIKit
 
 struct AdaptiveAdBanner: View {
@@ -45,3 +47,10 @@ private struct BannerContainer: UIViewRepresentable {
             .rootViewController
     }
 }
+#else
+/// Keeps root composition identical while producing no advertising view.
+struct AdaptiveAdBanner: View {
+    let adUnitID: String
+    var body: some View { EmptyView() }
+}
+#endif

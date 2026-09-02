@@ -35,3 +35,12 @@ The TestFlight workflow permits template-mode upload only for `com.goodusestudio
 ## Production-only configuration
 
 App Store Connect product records, agreements, pricing, tax/banking state, distribution signing, App Store Connect API secrets, production AdMob IDs and UMP consent messages cannot be safely committed into the reusable shell. The guarded workflow validates source configuration before using those external records.
+
+
+## Release compliance
+
+Read [the Apple compliance gate](docs/APPLE_STORE_COMPLIANCE.md), [UI regression matrix](docs/UI_REGRESSION_MATRIX.md), [shell changelog](SHELL_CHANGELOG.md), and [migration protocol](MIGRATIONS.md) before deriving or releasing an app.
+
+The default `Shell` target is genuinely ad-free and contains no Google advertising linkage or metadata. `ShellAds` is the explicit opt-in advertising target. Every commerce surface is logo/icon/brand-asset-free and is protected by `scripts/check-commerce-branding.sh`.
+
+The reviewed shared terminology contract is available for 31 locales in `Shell/Resources/gooduse-common-localization-v1.json`. It is not a claim that product-specific or legal text has been translated. Backup remains disabled and entitlement-free until a derived app injects and reviews its own native provider.

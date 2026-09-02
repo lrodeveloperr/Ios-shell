@@ -33,7 +33,12 @@ Read this file before changing code.
 | Language selection | `Shell/Services/LanguageController.swift` |
 | Identity, package and target | `project.yml`, `Shell/Resources/Info.plist` |
 | Icons and colors | `Shell/Resources/Assets.xcassets` |
-| Release checks | `scripts/validate-shell.sh` |
+| Release checks | `scripts/validate-shell.sh`, `scripts/check-commerce-branding.sh` |
+| Apple compliance gate | `docs/APPLE_STORE_COMPLIANCE.md` |
+| UI regression matrix | `docs/UI_REGRESSION_MATRIX.md` |
+| Shell version and migrations | `Shell/App/ShellContract.swift`, `SHELL_CHANGELOG.md`, `MIGRATIONS.md` |
+| Optional native backup seam | `Shell/Services/NativeBackup.swift` |
+| Shared 31-locale terms | `Shell/Resources/gooduse-common-localization-v1.json` |
 
 ## What a derived app may replace
 
@@ -142,3 +147,21 @@ When execution is authorized, the release checks are:
 - Xcode build and unit tests
 
 TestFlight requires an explicit manual workflow dispatch and the exact confirmation text. Never upload or trigger a hosted run unless the user explicitly authorizes it.
+
+
+## Mandatory commerce-surface rule
+
+Paywall, purchase, restore, subscription and win-back surfaces must contain no app logo, AppIcon, named image asset, custom brand mark or app-name hero. Generic SF Symbols may support comprehension, but they must not reproduce the app mark. This house rule is deliberately stricter than Apple's published in-app UI wording. When execution is authorized, run `scripts/check-commerce-branding.sh`; a failure blocks release. App Store promotional IAP and win-back media must separately follow Apple's rule that the promotional image cannot be the app icon or an app screenshot.
+
+## Ad-free and advertising products
+
+The default `Shell` target is physically ad-free: it does not link GoogleMobileAds/UMP and its `Info.plist` contains no GAD or SKAdNetwork metadata. Use it for free, purchase, subscription and usage-cap apps.
+
+Only an intentionally ad-supported app uses `ShellAds`, `Info-Ads.plist`, and an advertising monetization mode. Use `scripts/validate-shell.sh --release-ads` for that profile. Never copy advertising metadata into the default plist.
+
+## Compliance, localization, backup and migrations
+
+- Treat `docs/APPLE_STORE_COMPLIANCE.md` as a release gate, not a guarantee. Re-open every official Apple source and mark each current numbered guideline subsection PASS or N/A with evidence.
+- `gooduse-common-localization-v1.json` is the reviewed 31-locale shared terminology contract copied from the Android shell. It does not authorize advertising a locale until all app, legal, product and store text is complete.
+- Backup is disabled by default and has no entitlement. Enable it only with an app-owned `NativeBackupProviding` implementation, reviewed privacy disclosures, versioned serialization and recoverable conflict handling.
+- Record the adopted `ShellContract.currentVersion`. A breaking adoption requires ordered, idempotent `ShellMigration` steps; never erase data or silently skip a missing step.
