@@ -14,6 +14,8 @@ A reusable **100% Swift 6 / SwiftUI** foundation for iPhone and iPad. Product-do
 - In-app language switching changes the SwiftUI locale immediately and persists.
 - Debug-only Shell Lab, automated validation, executed unit tests, and guarded TestFlight upload.
 
+Both GitHub Actions workflows are manual-only so routine commits and pull requests do not consume hosted macOS minutes. Run the validation/build/test workflow deliberately when macOS minutes are available.
+
 ## Derive an app
 
 1. Implement `FeatureCanvasProviding` and inject it in `ShellApp`. Feature code must call `accessDecision` before a protected action and `recordSuccessfulAction` only after confirmed success.

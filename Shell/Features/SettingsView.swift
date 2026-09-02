@@ -28,6 +28,13 @@ struct SettingsView: View {
                         SettingsLabel("privacyOptions", subtitle: "privacyOptions.subtitle", symbol: "hand.raised.square")
                     }
                 }
+                if model.access.configuration.includesAdvertising && model.ads.message != nil {
+                    Button {
+                        Task { await model.prepareAdvertisingIfNeeded() }
+                    } label: {
+                        SettingsLabel("privacyRetry", subtitle: "privacyRetry.subtitle", symbol: "arrow.clockwise")
+                    }
+                }
             }
 
             Section("legal") {

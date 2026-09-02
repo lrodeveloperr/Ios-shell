@@ -3,18 +3,6 @@ import XCTest
 
 @MainActor
 final class ShellTests: XCTestCase {
-    private var defaults: UserDefaults!
-
-    override func setUp() {
-        super.setUp()
-        defaults = UserDefaults(suiteName: "ShellTests.\(UUID().uuidString)")!
-    }
-
-    override func tearDown() {
-        defaults = nil
-        super.tearDown()
-    }
-
     func testAllSevenMonetizationModesResolveAccess() {
         for mode in [MonetizationMode.free, .ads, .adsWithRemovePurchase] {
             XCTAssertEqual(resolve(mode, entitled: false, checking: true, free: false), .allowed)
@@ -41,6 +29,7 @@ final class ShellTests: XCTestCase {
     }
 
     func testSuccessfulUsageIsPersistentAndDeduplicated() {
+        let defaults = makeDefaults()
         let store = UserDefaultsUsageStore(defaults: defaults, key: "usage")
         let first = UsageLedger(limit: 2, store: store)
         XCTAssertEqual(first.recordSuccessfulAction(id: "operation-1"), .recorded(remaining: 1))
@@ -54,6 +43,7 @@ final class ShellTests: XCTestCase {
     }
 
     func testLegalAcceptanceIsVersionedAndForcesReconsent() {
+        let defaults = makeDefaults()
         let first = LegalConsentStore(defaults: defaults, requiredVersion: "2026-09")
         XCTAssertTrue(first.requiresPresentation)
         XCTAssertFalse(first.isReconsent)
@@ -102,5 +92,9 @@ final class ShellTests: XCTestCase {
 
     private func configuration(_ mode: MonetizationMode) -> MonetizationConfiguration {
         MonetizationConfiguration(mode: mode, freeSuccessfulActions: 3, lifetimeProductID: "lifetime", subscriptionProductID: "monthly")
+    }
+
+    private func makeDefaults() -> UserDefaults {
+        UserDefaults(suiteName: "ShellTests.\(UUID().uuidString)")!
     }
 }

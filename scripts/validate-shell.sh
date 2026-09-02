@@ -66,6 +66,8 @@ if [[ "$mode" == "--release" ]]; then
   reject_text Shell/Resources/en.lproj/Localizable.strings 'REPLACE_WITH_REVIEWED_'
   reject_text Shell/Resources/es.lproj/Localizable.strings 'REPLACE_WITH_REVIEWED_'
   reject_text Shell/Resources/Assets.xcassets/AppIcon.appiconset/Contents.json 'ShellIcon-1024.png'
+  grep -Fq 'privacyURL: URL(string: "https://' Shell/App/ShellConfiguration.swift || fail "Privacy URL must use HTTPS"
+  grep -Fq 'termsURL: URL(string: "https://' Shell/App/ShellConfiguration.swift || fail "Terms URL must use HTTPS"
 
   selected_mode="$(sed -n 's/.*mode: \.\([A-Za-z]*\).*/\1/p' Shell/App/ShellConfiguration.swift | head -1)"
   if [[ "$selected_mode" == "ads" || "$selected_mode" == "adsWithRemovePurchase" ]]; then

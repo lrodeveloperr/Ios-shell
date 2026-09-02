@@ -1,9 +1,6 @@
 name: iOS shell
 
 on:
-  push:
-    branches: [main, codex/ios-shell-production-parity]
-  pull_request:
   workflow_dispatch:
 
 permissions:

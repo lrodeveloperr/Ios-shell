@@ -25,6 +25,7 @@ final class AdConsentService {
         } catch {
             // Fail closed: no SDK start and no ad request after consent errors.
             canRequestAds = false
+            preparationAttempted = false
             isPrivacyOptionsRequired = ConsentInformation.shared.privacyOptionsRequirementStatus == .required
             message = error.localizedDescription
         }
@@ -50,6 +51,7 @@ final class AdConsentService {
     }
 
     private func updateStateAndStartIfAllowed() {
+        message = nil
         canRequestAds = ConsentInformation.shared.canRequestAds
         isPrivacyOptionsRequired = ConsentInformation.shared.privacyOptionsRequirementStatus == .required
         guard canRequestAds, !initializationComplete else { return }

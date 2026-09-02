@@ -68,6 +68,8 @@
 "support" = "Ayuda y soporte";
 "privacyOptions" = "Opciones de privacidad";
 "privacyOptions.subtitle" = "Revisa el consentimiento publicitario";
+"privacyRetry" = "Reintentar la configuración de privacidad";
+"privacyRetry.subtitle" = "Los anuncios siguen desactivados hasta completar la configuración";
 "legal" = "Información legal";
 "privacyPolicy" = "Política de privacidad";
 "termsOfUse" = "Condiciones de uso";

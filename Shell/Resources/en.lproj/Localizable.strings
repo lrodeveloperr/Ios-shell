@@ -68,6 +68,8 @@
 "support" = "Help & support";
 "privacyOptions" = "Privacy choices";
 "privacyOptions.subtitle" = "Review advertising consent";
+"privacyRetry" = "Retry privacy setup";
+"privacyRetry.subtitle" = "Ads remain off until setup succeeds";
 "legal" = "Legal";
 "privacyPolicy" = "Privacy Policy";
 "termsOfUse" = "Terms of Use";
