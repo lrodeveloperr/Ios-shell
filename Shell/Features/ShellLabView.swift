@@ -1,5 +1,6 @@
 import SwiftUI
 
+#if DEBUG
 struct ShellLabView: View {
     @Environment(ShellModel.self) private var model
     @Environment(\.dismiss) private var dismiss
@@ -9,11 +10,11 @@ struct ShellLabView: View {
         @Bindable var model = model
         Form {
             Section("Monetization") {
-                Picker("Mode", selection: $model.monetizationMode) {
-                    ForEach(MonetizationMode.allCases) { mode in Text(mode.title).tag(mode) }
+                LabeledContent("Mode", value: model.access.configuration.mode.title)
+                LabeledContent("Access", value: String(describing: model.access.decision))
+                if let remaining = model.access.remainingFreeActions {
+                    LabeledContent("Free actions remaining", value: "\(remaining)")
                 }
-                .pickerStyle(.navigationLink)
-                Toggle("Entitlement / remove ads", isOn: $model.entitlementOverride)
             }
             Section("Feature state") {
                 Picker("State", selection: $model.contentState) {
@@ -25,7 +26,7 @@ struct ShellLabView: View {
                 LabeledContent("Compact", value: "Tab bar")
                 LabeledContent("Regular", value: "Sidebar-adaptable tabs")
                 LabeledContent("Detail", value: "Split at 700 pt")
-                LabeledContent("Ad", value: model.shouldShowAd ? "Reserved safe-area inset" : "Removed; content expands")
+                LabeledContent("Ad", value: model.shouldRenderAd ? "Consent granted; reserved inset" : "Not requested")
             }
             Section {
                 Button("Reset onboarding", systemImage: "arrow.counterclockwise") {
@@ -39,3 +40,4 @@ struct ShellLabView: View {
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
     }
 }
+#endif

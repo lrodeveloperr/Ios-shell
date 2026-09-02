@@ -1,27 +1,33 @@
-# iOS Shell
+# Native iOS application shell
 
-A native, reusable SwiftUI application shell for iPhone and iPad. It deliberately contains no product-domain logic.
+A reusable **100% Swift 6 / SwiftUI** foundation for iPhone and iPad. Product-domain code is injected through `FeatureCanvasProviding`; it does not modify the stable navigation, legal, localization, access, purchase, advertising, or release architecture.
 
-## What is included
+## Stable architecture
 
-- SwiftUI and Apple system controls, iOS 18+, Dynamic Type, VoiceOver-friendly labels, light/dark mode
-- `TabView` with the official `sidebarAdaptable` style: tab bar on iPhone, sidebar on iPad and larger windows
-- Single-destination mode without unnecessary tabs
-- Onboarding, placeholder legal pages, Settings, language, help, paywall, StoreKit 2 restore, and shell lab
-- Populated, empty, loading, error, compact, expanded, advertising, and entitlement states
-- Google Mobile Ads anchored adaptive test banner reserved with a safe-area inset
-- English and Spanish starter localization
-- CI for simulator builds/tests and a guarded cloud-signing TestFlight workflow
+- Adaptive native `TabView`: one destination has no tab bar; two to five destinations adapt from iPhone tabs to iPad sidebar.
+- Configurable legal-only, single-screen, or guided onboarding. Every profile ends with one explicit acceptance checkbox.
+- Legal acceptance version is stored separately from onboarding completion. Incrementing `legal.version` forces re-consent.
+- Seven monetization profiles: free, ads, ads with removal purchase, one-time unlock, subscription, usage cap with one-time unlock, and usage cap with subscription.
+- The shell checks access before composing the injected feature canvas, so paid and exhausted-cap functionality cannot appear behind an advisory callback.
+- Successful usage is counted only after completion, keyed by a stable product-owned identifier of at most 128 UTF-8 bytes, persisted, and deduplicated.
+- StoreKit 2 verification, transaction updates, restore, revocation/expiry handling, and a Keychain offline snapshot whose subscriptions stop at their verified expiry.
+- Google UMP consent runs before Google Mobile Ads initialization or any ad request. Required privacy choices remain available in Settings.
+- In-app language switching changes the SwiftUI locale immediately and persists.
+- Debug-only Shell Lab, automated validation, executed unit tests, and guarded TestFlight upload.
 
-## Start a derived app
+Both GitHub Actions workflows are manual-only so routine commits and pull requests do not consume hosted macOS minutes. Run the validation/build/test workflow deliberately when macOS minutes are available.
 
-1. Edit `ShellConfiguration.swift` and `project.yml` for identity, destinations, links, products, and monetization.
-2. Replace the placeholder feature area—not the adaptive shell.
-3. Replace Google’s demo AdMob identifiers and implement consent before requesting production ads.
-4. Configure matching products in App Store Connect. Keep StoreKit verification and restore behavior.
-5. Replace the legal placeholders with reviewed, app-specific documents.
-6. Run `xcodegen generate`, then open `Shell.xcodeproj`.
+## Derive an app
 
-The shell removes repetitive UI decisions; it does not force every product into the same information architecture. One top-level task uses no tab bar. Two to five destinations use adaptive tabs/sidebar. List-detail content splits only when the available window makes that useful.
+1. Implement `FeatureCanvasProviding` and inject it in `ShellApp`. The shell composes it only when access is allowed; feature code calls `recordSuccessfulAction` only after a confirmed successful capped action.
+2. Configure identity, destinations, onboarding, legal version/URLs, monetization, product IDs, languages, and advertising in `ShellConfiguration.swift` and `project.yml`.
+3. Replace the app icon and the reviewed legal text in every shipped localization.
+4. If advertising is enabled, replace both Google demo IDs and complete the AdMob/UMP messages and privacy declarations for the derived app.
+5. Create matching App Store Connect products. Product types must match the chosen profile.
+6. Run `scripts/validate-shell.sh --release`, `xcodegen generate`, and the unit tests before distribution.
 
-All advertising identifiers committed here are Google’s test identifiers. Never ship them as a production configuration.
+The TestFlight workflow permits template-mode upload only for `com.goodusestudios.shelllab`. Any derived bundle identifier must pass strict release validation before archive or upload.
+
+## Production-only configuration
+
+App Store Connect product records, agreements, pricing, tax/banking state, distribution signing, App Store Connect API secrets, production AdMob IDs and UMP consent messages cannot be safely committed into the reusable shell. The guarded workflow validates source configuration before using those external records.

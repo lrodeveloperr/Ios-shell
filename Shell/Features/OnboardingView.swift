@@ -1,61 +1,128 @@
 import SwiftUI
 
 struct OnboardingView: View {
-    let onComplete: () -> Void
+    let profile: OnboardingProfile
+    let isReconsent: Bool
+    let onAccept: () -> Void
+
     @State private var page = 0
+    @State private var accepted = false
     @State private var legalDocument: LegalDocument?
 
-    private let pages = [
-        OnboardingPage(number: "01", title: "A faster starting point", message: "Adaptive navigation, settings, legal, monetization seams, and polished states are ready."),
-        OnboardingPage(number: "02", title: "Native on every screen", message: "iPhone uses a familiar tab bar. iPad and larger windows gain a customizable sidebar automatically."),
-        OnboardingPage(number: "03", title: "Skin it, then build", message: "Change tokens and configuration first. Replace placeholder features only after your product logic is settled."),
+    private let tourPages = [
+        OnboardingPage(titleKey: "onboarding.tour.fast.title", messageKey: "onboarding.tour.fast.message"),
+        OnboardingPage(titleKey: "onboarding.tour.native.title", messageKey: "onboarding.tour.native.message"),
+        OnboardingPage(titleKey: "onboarding.tour.ready.title", messageKey: "onboarding.tour.ready.message"),
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Text(ShellConfiguration.appName)
-                .font(.title3.weight(.semibold))
-            Spacer()
-            Text(pages[page].number)
-                .font(.headline)
-                .foregroundStyle(.tint)
-            Text(pages[page].title)
-                .font(.largeTitle.bold())
-            Text(pages[page].message)
-                .font(.title3)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Button(page == pages.count - 1 ? "Get started" : "Continue") {
-                if page < pages.count - 1 { withAnimation { page += 1 } } else { onComplete() }
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .frame(maxWidth: .infinity)
-            if page > 0 {
-                Button("Back") { withAnimation { page -= 1 } }
-                    .buttonStyle(.bordered)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                Text(ShellConfiguration.appName).font(.title3.weight(.semibold))
+                Spacer(minLength: 32)
+                content
+                Spacer(minLength: 32)
+
+                if showsAcceptance {
+                    Toggle(isOn: $accepted) {
+                        Text("onboarding.accept")
+                    }
+                    .toggleStyle(CheckboxToggleStyle())
+                    .accessibilityHint(Text("onboarding.accept.hint"))
+                }
+
+                Button(primaryButtonTitle) { advanceOrAccept() }
+                    .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     .frame(maxWidth: .infinity)
+                    .disabled(showsAcceptance && !accepted)
+
+                if profile == .guidedTour && page > 0 {
+                    Button("back") { withAnimation { page -= 1 } }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .frame(maxWidth: .infinity)
+                }
+
+                HStack {
+                    Button("privacy") { legalDocument = .privacy }
+                    Spacer()
+                    Button("terms") { legalDocument = .terms }
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
             }
-            HStack {
-                Button("Privacy") { legalDocument = .privacy }
-                Spacer()
-                Button("Terms") { legalDocument = .terms }
-            }
-            .font(.footnote)
-            .foregroundStyle(.secondary)
+            .frame(maxWidth: 640, minHeight: 540)
+            .padding(28)
+            .frame(maxWidth: .infinity)
         }
-        .padding(28)
-        .frame(maxWidth: 640)
-        .frame(maxWidth: .infinity)
         .sheet(item: $legalDocument) { document in
             NavigationStack { LegalView(document: document) }
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if isReconsent {
+            Image(systemName: "doc.badge.clock").font(.largeTitle).foregroundStyle(.tint)
+            Text("onboarding.updatedLegal.title").font(.largeTitle.bold())
+            Text("onboarding.updatedLegal.message").font(.title3).foregroundStyle(.secondary)
+        } else {
+            switch profile {
+            case .legalOnly:
+                Image(systemName: "checkmark.shield").font(.largeTitle).foregroundStyle(.tint)
+                Text("onboarding.legalOnly.title").font(.largeTitle.bold())
+                Text("onboarding.legalOnly.message").font(.title3).foregroundStyle(.secondary)
+            case .singleScreen:
+                Image(systemName: "sparkles").font(.largeTitle).foregroundStyle(.tint)
+                Text("onboarding.single.title").font(.largeTitle.bold())
+                Text("onboarding.single.message").font(.title3).foregroundStyle(.secondary)
+            case .guidedTour:
+                Text("\(page + 1) / \(tourPages.count)").font(.headline).foregroundStyle(.tint)
+                Text(tourPages[page].titleKey).font(.largeTitle.bold())
+                Text(tourPages[page].messageKey).font(.title3).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var showsAcceptance: Bool {
+        isReconsent || profile != .guidedTour || page == tourPages.count - 1
+    }
+
+    private var primaryButtonTitle: LocalizedStringKey {
+        profile == .guidedTour && !isReconsent && page < tourPages.count - 1 ? "continue" : "getStarted"
+    }
+
+    private func advanceOrAccept() {
+        if profile == .guidedTour && !isReconsent && page < tourPages.count - 1 {
+            withAnimation { page += 1 }
+        } else if accepted {
+            onAccept()
         }
     }
 }
 
 private struct OnboardingPage {
-    let number: String
-    let title: String
-    let message: String
+    let titleKey: LocalizedStringKey
+    let messageKey: LocalizedStringKey
+}
+
+private struct CheckboxToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Button {
+            configuration.isOn.toggle()
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
+                    .font(.title2)
+                    .foregroundStyle(configuration.isOn ? Color.accentColor : .secondary)
+                configuration.label
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
 }
