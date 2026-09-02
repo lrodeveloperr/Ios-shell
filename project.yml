@@ -14,7 +14,10 @@ targetTemplates:
     type: application
     platform: iOS
     sources:
-      - Shell
+      - path: Shell
+        excludes:
+          - Resources/Info.plist
+          - Resources/Info-Ads.plist
     settings:
       base:
         PRODUCT_NAME: Shell
