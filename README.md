@@ -2,6 +2,10 @@
 
 A reusable **100% Swift 6 / SwiftUI** foundation for iPhone and iPad. Product-domain code is injected through `FeatureCanvasProviding`; it does not modify the stable navigation, legal, localization, access, purchase, advertising, or release architecture.
 
+## AI coding tools
+
+Start with [`AGENTS.md`](AGENTS.md). It is the operational source map for the locked shell boundary, safe customization order, feature-provider contract, advertising option, monetization enforcement, localization and release blockers.
+
 ## Stable architecture
 
 - Adaptive native `TabView`: one destination has no tab bar; two to five destinations adapt from iPhone tabs to iPad sidebar.
