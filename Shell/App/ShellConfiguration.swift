@@ -83,7 +83,7 @@ struct MonetizationConfiguration: Sendable {
 
 struct ShellDestination: Hashable, Identifiable, Sendable {
     let id: String
-    let titleKey: LocalizedStringKey
+    let titleKey: String
     let symbol: String
 
     static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }

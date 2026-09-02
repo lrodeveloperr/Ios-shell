@@ -63,7 +63,7 @@ struct ShellRootView: View {
         if ShellConfiguration.destinations.count == 1, let destination = ShellConfiguration.destinations.first {
             NavigationStack {
                 FeatureCanvasHost(destination: destination, provider: featureProvider)
-                    .navigationTitle(destination.titleKey)
+                    .navigationTitle(Text(LocalizedStringKey(destination.titleKey)))
                     .shellSettingsToolbar()
             }
             .safeAreaInset(edge: .bottom) { adBanner }
@@ -72,11 +72,11 @@ struct ShellRootView: View {
                 ForEach(ShellConfiguration.destinations) { destination in
                     NavigationStack {
                         FeatureCanvasHost(destination: destination, provider: featureProvider)
-                            .navigationTitle(destination.titleKey)
+                            .navigationTitle(Text(LocalizedStringKey(destination.titleKey)))
                             .shellSettingsToolbar()
                     }
                     .tag(destination.id)
-                    .tabItem { Label(destination.titleKey, systemImage: destination.symbol) }
+                    .tabItem { Label(LocalizedStringKey(destination.titleKey), systemImage: destination.symbol) }
                 }
             }
             .tabViewStyle(.sidebarAdaptable)

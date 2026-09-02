@@ -64,7 +64,7 @@ struct FeatureView: View {
                         PlaceholderDetail(title: "Item \(index)")
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(destination.titleKey) + Text(" · \(index)")
+                            Text(LocalizedStringKey(destination.titleKey)) + Text(" · \(index)")
                             Text("feature.supporting").font(.subheadline).foregroundStyle(.secondary)
                         }
                     }

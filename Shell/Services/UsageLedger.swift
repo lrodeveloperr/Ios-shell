@@ -59,7 +59,7 @@ struct KeychainUsageStore: UsagePersisting {
     }
 }
 
-struct UserDefaultsUsageStore: UsagePersisting {
+struct UserDefaultsUsageStore: UsagePersisting, @unchecked Sendable {
     let defaults: UserDefaults
     let key: String
 

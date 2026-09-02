@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 struct PaywallView: View {
@@ -18,13 +19,26 @@ struct PaywallView: View {
                     Button {
                         Task { await model.access.purchases.purchasePrimary() }
                     } label: {
-                        Text("\(product.displayName) · \(product.displayPrice)")
+                        VStack(spacing: 2) {
+                            Text(product.displayName)
+                            if let subscription = product.subscription {
+                                Text(product.displayPrice) + Text(" · ") + Text(periodKey(subscription.subscriptionPeriod))
+                            } else {
+                                Text(product.displayPrice)
+                            }
+                        }
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                 } else {
                     ProgressView("paywall.loadingProduct").frame(maxWidth: .infinity)
+                }
+
+                if model.access.purchases.primaryProduct?.subscription != nil {
+                    Text("paywall.subscriptionDisclosure")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
 
                 Button("paywall.restore") { Task { await model.access.purchases.restore() } }
@@ -58,5 +72,15 @@ struct PaywallView: View {
             get: { model.access.purchases.showingError },
             set: { model.access.purchases.showingError = $0 }
         )
+    }
+
+    private func periodKey(_ period: Product.SubscriptionPeriod) -> LocalizedStringKey {
+        switch period.unit {
+        case .day: period.value == 1 ? "paywall.period.day.one" : "paywall.period.day.other \(period.value)"
+        case .week: period.value == 1 ? "paywall.period.week.one" : "paywall.period.week.other \(period.value)"
+        case .month: period.value == 1 ? "paywall.period.month.one" : "paywall.period.month.other \(period.value)"
+        case .year: period.value == 1 ? "paywall.period.year.one" : "paywall.period.year.other \(period.value)"
+        @unknown default: "paywall.period.unknown"
+        }
     }
 }

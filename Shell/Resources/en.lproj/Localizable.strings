@@ -52,6 +52,16 @@
 "paywall.benefit.support" = "Supports continued development";
 "paywall.loadingProduct" = "Loading App Store price…";
 "paywall.restore" = "Restore purchases";
+"paywall.subscriptionDisclosure" = "Payment is charged to your Apple Account at confirmation. The subscription renews automatically unless cancelled in Apple Account settings before renewal.";
+"paywall.period.day.one" = "every day";
+"paywall.period.day.other %lld" = "every %lld days";
+"paywall.period.week.one" = "every week";
+"paywall.period.week.other %lld" = "every %lld weeks";
+"paywall.period.month.one" = "every month";
+"paywall.period.month.other %lld" = "every %lld months";
+"paywall.period.year.one" = "every year";
+"paywall.period.year.other %lld" = "every %lld years";
+"paywall.period.unknown" = "subscription period";
 
 "upgrade.subtitle" = "Manage purchases and restore access";
 "language" = "Language";
