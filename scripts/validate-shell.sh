@@ -32,6 +32,12 @@ require_text Shell/Features/OnboardingView.swift 'Toggle(isOn: $accepted)'
 require_text Shell/Services/LegalConsentStore.swift 'acceptedLegalVersion'
 require_text Shell/Services/UsageLedger.swift 'KeychainUsageStore'
 require_text Shell/Services/UsageLedger.swift 'revised.insert(id)'
+require_text Shell/Services/UsageLedger.swift 'id.utf8.count <= 128'
+require_text Shell/App/FeatureCanvasBoundary.swift 'switch model.access.decision'
+require_text Shell/App/FeatureCanvasBoundary.swift 'case .allowed:'
+require_text Shell/Features/ShellLabView.swift '#if DEBUG'
+require_text Shell/Features/SettingsView.swift '#if DEBUG'
+require_text Shell/App/ShellModel.swift '#if DEBUG'
 
 plutil -lint Shell/Resources/Info.plist >/dev/null
 plutil -lint Shell/Resources/PrivacyInfo.xcprivacy >/dev/null
@@ -66,6 +72,7 @@ if [[ "$mode" == "--release" ]]; then
   reject_text Shell/Resources/en.lproj/Localizable.strings 'REPLACE_WITH_REVIEWED_'
   reject_text Shell/Resources/es.lproj/Localizable.strings 'REPLACE_WITH_REVIEWED_'
   reject_text Shell/Resources/Assets.xcassets/AppIcon.appiconset/Contents.json 'ShellIcon-1024.png'
+  reject_text Shell/App/ShellApp.swift 'PlaceholderFeatureCanvasProvider()'
   grep -Fq 'privacyURL: URL(string: "https://' Shell/App/ShellConfiguration.swift || fail "Privacy URL must use HTTPS"
   grep -Fq 'termsURL: URL(string: "https://' Shell/App/ShellConfiguration.swift || fail "Terms URL must use HTTPS"
 

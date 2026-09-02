@@ -12,6 +12,11 @@
 "upgrade" = "Mejorar";
 "store" = "Tienda";
 "advertisement" = "Anuncio";
+"access.checking" = "Comprobando el acceso de App Store…";
+"access.purchase.title" = "Se requiere una mejora";
+"access.purchase.message" = "Mejora el plan para usar esta función.";
+"access.limit.title" = "Límite gratuito alcanzado";
+"access.limit.message" = "Mejora el plan para seguir usando esta función.";
 
 "onboarding.accept" = "Acepto la Política de privacidad y las Condiciones de uso.";
 "onboarding.accept.hint" = "Obligatorio antes de usar la aplicación";

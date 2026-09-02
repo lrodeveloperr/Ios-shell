@@ -97,7 +97,7 @@ final class UsageLedger {
     @discardableResult
     func recordSuccessfulAction(id rawID: String) -> UsageRecordingResult {
         let id = rawID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !id.isEmpty else { return .invalidIdentifier }
+        guard !id.isEmpty, id.utf8.count <= 128 else { return .invalidIdentifier }
         if successfulActionIDs.contains(id) { return .duplicate(remaining: remaining) }
         guard hasFreeActionRemaining else { return .limitReached }
 

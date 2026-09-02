@@ -1,5 +1,6 @@
 import SwiftUI
 
+#if DEBUG
 struct ShellLabView: View {
     @Environment(ShellModel.self) private var model
     @Environment(\.dismiss) private var dismiss
@@ -39,3 +40,4 @@ struct ShellLabView: View {
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
     }
 }
+#endif

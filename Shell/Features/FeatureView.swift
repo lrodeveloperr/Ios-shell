@@ -8,7 +8,7 @@ struct FeatureView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            switch model.contentState {
+            switch activeContentState {
             case .loading:
                 ProgressView("loading").frame(maxWidth: .infinity, maxHeight: .infinity)
             case .empty:
@@ -19,7 +19,7 @@ struct FeatureView: View {
                 } description: {
                     Text("error.message")
                 } actions: {
-                    Button("tryAgain") { model.contentState = .populated }.buttonStyle(.borderedProminent)
+                    Button("tryAgain", action: recoverFromDemoError).buttonStyle(.borderedProminent)
                 }
             case .populated:
                 if geometry.size.width >= 700 {
@@ -35,6 +35,20 @@ struct FeatureView: View {
                 }
             }
         }
+    }
+
+    private var activeContentState: SampleContentState {
+#if DEBUG
+        model.contentState
+#else
+        .populated
+#endif
+    }
+
+    private func recoverFromDemoError() {
+#if DEBUG
+        model.contentState = .populated
+#endif
     }
 
     private var featureList: some View {
@@ -75,12 +89,6 @@ struct FeatureView: View {
     }
 
     private func completeSampleAction() {
-        let decision = context.accessDecision()
-        guard decision == .allowed else {
-            model.handleDeniedAccess(decision)
-            return
-        }
-
         // The derived feature supplies its own stable completion ID after its
         // real operation succeeds. This UUID represents a newly completed demo action.
         let result = context.recordSuccessfulAction(UUID().uuidString)

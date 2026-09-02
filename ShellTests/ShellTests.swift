@@ -35,6 +35,7 @@ final class ShellTests: XCTestCase {
         XCTAssertEqual(first.recordSuccessfulAction(id: "operation-1"), .recorded(remaining: 1))
         XCTAssertEqual(first.recordSuccessfulAction(id: "operation-1"), .duplicate(remaining: 1))
         XCTAssertEqual(first.recordSuccessfulAction(id: "  "), .invalidIdentifier)
+        XCTAssertEqual(first.recordSuccessfulAction(id: String(repeating: "a", count: 129)), .invalidIdentifier)
         let relaunched = UsageLedger(limit: 2, store: store)
         XCTAssertEqual(relaunched.successfulActionCount, 1)
         XCTAssertEqual(relaunched.recordSuccessfulAction(id: "operation-2"), .recorded(remaining: 0))

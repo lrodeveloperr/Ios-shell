@@ -33,16 +33,13 @@ struct ShellRootView: View {
         .sheet(isPresented: $model.settingsPresented) {
             NavigationStack { SettingsView() }
         }
+#if DEBUG
         .sheet(isPresented: $model.labPresented) {
             NavigationStack { ShellLabView(onResetOnboarding: legalConsent.resetForTesting) }
         }
+#endif
         .sheet(isPresented: $model.paywallPresented) {
             NavigationStack { PaywallView() }
-        }
-        .alert("Access", isPresented: $model.accessAlertPresented) {
-            Button("ok") {}
-        } message: {
-            Text(model.accessAlertMessage)
         }
         .task {
             await model.start()

@@ -4,12 +4,14 @@ import Observation
 @Observable
 final class ShellModel {
     var selectedDestination = ShellConfiguration.destinations.first?.id ?? ""
+#if DEBUG
     var contentState = SampleContentState.populated
+#endif
     var settingsPresented = false
+#if DEBUG
     var labPresented = false
+#endif
     var paywallPresented = false
-    var accessAlertPresented = false
-    var accessAlertMessage = ""
 
     let access: AccessController
     let ads: AdConsentService
@@ -37,15 +39,4 @@ final class ShellModel {
         await ads.prepareIfNeeded(advertisingEnabled: access.shouldShowAd)
     }
 
-    func handleDeniedAccess(_ decision: AccessDecision) {
-        switch decision {
-        case .allowed:
-            return
-        case .checkingEntitlement:
-            accessAlertMessage = "Checking App Store access. Try again in a moment."
-            accessAlertPresented = true
-        case .purchaseRequired, .usageLimitReached:
-            paywallPresented = true
-        }
-    }
 }

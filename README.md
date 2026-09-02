@@ -8,7 +8,8 @@ A reusable **100% Swift 6 / SwiftUI** foundation for iPhone and iPad. Product-do
 - Configurable legal-only, single-screen, or guided onboarding. Every profile ends with one explicit acceptance checkbox.
 - Legal acceptance version is stored separately from onboarding completion. Incrementing `legal.version` forces re-consent.
 - Seven monetization profiles: free, ads, ads with removal purchase, one-time unlock, subscription, usage cap with one-time unlock, and usage cap with subscription.
-- Successful usage is counted only after completion, keyed by a stable product-owned identifier, persisted, and deduplicated.
+- The shell checks access before composing the injected feature canvas, so paid and exhausted-cap functionality cannot appear behind an advisory callback.
+- Successful usage is counted only after completion, keyed by a stable product-owned identifier of at most 128 UTF-8 bytes, persisted, and deduplicated.
 - StoreKit 2 verification, transaction updates, restore, revocation/expiry handling, and a Keychain offline snapshot whose subscriptions stop at their verified expiry.
 - Google UMP consent runs before Google Mobile Ads initialization or any ad request. Required privacy choices remain available in Settings.
 - In-app language switching changes the SwiftUI locale immediately and persists.
@@ -18,7 +19,7 @@ Both GitHub Actions workflows are manual-only so routine commits and pull reques
 
 ## Derive an app
 
-1. Implement `FeatureCanvasProviding` and inject it in `ShellApp`. Feature code must call `accessDecision` before a protected action and `recordSuccessfulAction` only after confirmed success.
+1. Implement `FeatureCanvasProviding` and inject it in `ShellApp`. The shell composes it only when access is allowed; feature code calls `recordSuccessfulAction` only after a confirmed successful capped action.
 2. Configure identity, destinations, onboarding, legal version/URLs, monetization, product IDs, languages, and advertising in `ShellConfiguration.swift` and `project.yml`.
 3. Replace the app icon and the reviewed legal text in every shipped localization.
 4. If advertising is enabled, replace both Google demo IDs and complete the AdMob/UMP messages and privacy declarations for the derived app.

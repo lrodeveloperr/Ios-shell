@@ -12,6 +12,11 @@
 "upgrade" = "Upgrade";
 "store" = "Store";
 "advertisement" = "Advertisement";
+"access.checking" = "Checking App Store access…";
+"access.purchase.title" = "Upgrade required";
+"access.purchase.message" = "Upgrade to use this feature.";
+"access.limit.title" = "Free limit reached";
+"access.limit.message" = "Upgrade to continue using this feature.";
 
 "onboarding.accept" = "I accept the Privacy Policy and Terms of Use.";
 "onboarding.accept.hint" = "Required before using the app";

@@ -8,7 +8,6 @@ protocol FeatureCanvasProviding {
 }
 
 struct FeatureCanvasContext {
-    let accessDecision: () -> AccessDecision
     let remainingFreeActions: () -> Int?
     let recordSuccessfulAction: (_ stableActionID: String) -> UsageRecordingResult
     let requestUpgrade: () -> Void
@@ -25,15 +24,52 @@ struct FeatureCanvasHost: View {
     let provider: any FeatureCanvasProviding
     @Environment(ShellModel.self) private var model
 
+    @ViewBuilder
     var body: some View {
-        provider.makeCanvas(
-            for: destination,
-            context: FeatureCanvasContext(
-                accessDecision: { model.access.decision },
-                remainingFreeActions: { model.access.remainingFreeActions },
-                recordSuccessfulAction: { model.access.recordSuccessfulAction(id: $0) },
-                requestUpgrade: { model.paywallPresented = true }
+        switch model.access.decision {
+        case .allowed:
+            provider.makeCanvas(
+                for: destination,
+                context: FeatureCanvasContext(
+                    remainingFreeActions: { model.access.remainingFreeActions },
+                    recordSuccessfulAction: { model.access.recordSuccessfulAction(id: $0) },
+                    requestUpgrade: { model.paywallPresented = true }
+                )
             )
-        )
+        case .checkingEntitlement:
+            ProgressView("access.checking")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityLabel(Text("access.checking"))
+        case .purchaseRequired:
+            LockedFeatureView(
+                titleKey: "access.purchase.title",
+                messageKey: "access.purchase.message",
+                onUpgrade: { model.paywallPresented = true }
+            )
+        case .usageLimitReached:
+            LockedFeatureView(
+                titleKey: "access.limit.title",
+                messageKey: "access.limit.message",
+                onUpgrade: { model.paywallPresented = true }
+            )
+        }
+    }
+}
+
+private struct LockedFeatureView: View {
+    let titleKey: LocalizedStringKey
+    let messageKey: LocalizedStringKey
+    let onUpgrade: () -> Void
+
+    var body: some View {
+        ContentUnavailableView {
+            Label(titleKey, systemImage: "lock.fill")
+        } description: {
+            Text(messageKey)
+        } actions: {
+            Button("upgrade", action: onUpgrade)
+                .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
