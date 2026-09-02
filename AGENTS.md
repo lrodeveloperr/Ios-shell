@@ -1,0 +1,144 @@
+# AI implementation guide
+
+This repository is a reusable **native Apple-platform shell**. It is Swift 6 and SwiftUI only. The shell owns repetitive application infrastructure; a derived app supplies its product logic through `FeatureCanvasProviding`.
+
+Read this file before changing code.
+
+## Non-negotiable architecture
+
+- Keep the application 100% Swift and SwiftUI.
+- Do not introduce Flutter, React Native, UIKit screen architecture, WebView application shells or another cross-platform runtime.
+- Preserve native navigation, safe areas, Dynamic Type, VoiceOver, RTL and iPhone/iPad adaptation.
+- Keep private user data local unless the derived product specification explicitly authorizes a service.
+- Do not fork or duplicate shell screens inside product code.
+- Never bypass `AccessController` or compose the feature canvas before access is allowed.
+- Never grant paid access from a UI flag, transaction callback alone, unverified StoreKit result or expired snapshot.
+- GitHub Actions and TestFlight workflows are manual-only. Never trigger either unless the user explicitly requests it.
+
+## Five-minute source map
+
+| Concern | Authoritative source |
+|---|---|
+| Per-app configuration | `Shell/App/ShellConfiguration.swift` |
+| App entry point | `Shell/App/ShellApp.swift` |
+| Root navigation and shell composition | `Shell/App/ShellRootView.swift` |
+| Replaceable product boundary | `Shell/App/FeatureCanvasBoundary.swift` |
+| Example product canvas | `Shell/Features/FeatureView.swift` |
+| Onboarding and legal | `Shell/Features/OnboardingView.swift`, `LegalView.swift` |
+| Settings and paywall | `Shell/Features/SettingsView.swift`, `PaywallView.swift` |
+| Access and usage cap | `Shell/Services/AccessController.swift`, `UsageLedger.swift` |
+| StoreKit and offline entitlement | `Shell/Services/PurchaseService.swift`, `EntitlementCache.swift` |
+| Ads and consent | `Shell/Services/AdaptiveAdBanner.swift`, `AdConsentService.swift` |
+| Legal consent | `Shell/Services/LegalConsentStore.swift` |
+| Language selection | `Shell/Services/LanguageController.swift` |
+| Identity, package and target | `project.yml`, `Shell/Resources/Info.plist` |
+| Icons and colors | `Shell/Resources/Assets.xcassets` |
+| Release checks | `scripts/validate-shell.sh` |
+
+## What a derived app may replace
+
+A derived app normally changes only:
+
+1. Identity: bundle ID, product name, version, SKU and App Store identifiers.
+2. Brand: complete AppIcon set, in-app mark, tint and product-specific copy.
+3. `ShellConfiguration`: legal URLs/version, onboarding, destinations, languages, monetization, product IDs, ads and support address.
+4. The product implementation conforming to `FeatureCanvasProviding`.
+5. Product-specific localization, SwiftData models/repositories and Apple capabilities that the product truly needs.
+6. Reviewed privacy, terms, privacy manifest and store metadata.
+
+Everything else is shell infrastructure. Modify it only to fix a platform-wide defect that should benefit every future app.
+
+## Required implementation order
+
+1. Write the product flow and identify exactly which operations count as successful billable actions.
+2. Select one monetization mode in `ShellConfiguration.swift`.
+3. Configure bundle identity, legal version, HTTPS links, support, destinations, languages and onboarding.
+4. Replace the complete icon/brand family.
+5. Implement the feature provider and local data layer.
+6. Record a successful action only after the domain operation commits successfully.
+7. Configure matching App Store Connect products and advertising, when applicable.
+8. Replace every template placeholder and finish localization.
+9. Review the privacy manifest and store disclosures against actual behavior.
+10. Perform only the validation or upload explicitly authorized for the task.
+
+Do not redesign settled shell UI while implementing the product canvas.
+
+## Feature-canvas contract
+
+- Conform to `FeatureCanvasProviding` and inject the provider into `ShellApp`.
+- The host checks access before calling the provider.
+- A stable action ID represents one completed domain operation and must be at most 128 UTF-8 bytes.
+- Record success after persistence succeeds, never on button press, form opening, validation failure or retry.
+- Reusing the same ID must be safe; `UsageLedger` deduplicates it.
+- Present the existing shell paywall when access is exhausted.
+- Product code must not read or mutate StoreKit or Keychain entitlement state directly.
+
+## Monetization modes
+
+| Mode | Access | Advertising | Required product |
+|---|---|---|---|
+| `.free` | Always | No | None |
+| `.ads` | Always | Yes | None |
+| `.adsWithRemovePurchase` | Always | Until verified unlock | One-time |
+| `.oneTimeUnlock` | Verified purchase only | No | One-time |
+| `.subscription` | Active verified subscription only | No | Subscription |
+| `.usageCapWithOneTimeUnlock` | Free successful actions, then verified unlock | No | One-time |
+| `.usageCapWithSubscription` | Free successful actions, then active subscription | No | Subscription |
+
+The current template default is `.usageCapWithSubscription` with five free successful actions. Change it deliberately for each app.
+
+### Lower ad banner
+
+The anchored adaptive banner is already implemented with `.safeAreaInset(edge: .bottom)`. It sits above the native tab bar and never overlays the product canvas. It renders only when all conditions are true:
+
+- the selected monetization mode is `.ads` or `.adsWithRemovePurchase`;
+- UMP says ads may be requested;
+- Mobile Ads has been prepared; and
+- no verified remove-ads entitlement is active.
+
+Subscription, usage-cap, one-time-unlock and free profiles do not show the banner. Replace Google demo IDs only in an ad-enabled derived app and complete the corresponding UMP, privacy-manifest and App Store disclosures.
+
+## Revenue integrity
+
+- `AccessController` resolves access before the feature provider runs.
+- Product IDs and product types must match App Store Connect.
+- StoreKit results must pass verification.
+- Pending or cancelled purchases do not grant access.
+- `Transaction.updates` and `Transaction.currentEntitlements` keep entitlement state current.
+- Revoked and expired products are excluded.
+- Subscription cache access stops at verified expiry.
+- Keychain usage records are durable, bounded and deduplicated.
+- Shell Lab and entitlement overrides must remain inside `#if DEBUG`.
+
+## Onboarding and legal
+
+The shell supports `.legalOnly`, `.singleScreen` and `.guidedTour`. The current default is `.legalOnly`. Every profile ends with one explicit acceptance control. Changing the legal version forces re-consent. Privacy and terms must be readable before acceptance.
+
+## Navigation and adaptation
+
+- Configure one to five destinations.
+- One destination uses a native `NavigationStack` without a tab bar.
+- Two to five destinations use adaptive `TabView`; iPhone shows tabs and wider iPad layouts may promote to a sidebar.
+- Preserve safe-area insets and avoid device-model checks.
+- The feature canvas owns product content, not global navigation.
+
+## Localization and accessibility
+
+- Keep all shell and product text in localization resources.
+- Add every supported locale consistently; do not leave fallback English accidentally visible.
+- Preserve the system-language option and immediate SwiftUI locale update.
+- Use SF Symbols consistently and localize labels/content descriptions.
+- Verify Dynamic Type, VoiceOver, RTL, compact iPhone height and iPad width.
+- Do not hard-code user-visible English in new Views.
+
+## Release blockers
+
+A derived release must not ship with template identity, example URLs, support email, demo product IDs, Google test ad IDs, placeholder legal text, placeholder icon references or the sample provider.
+
+When execution is authorized, the release checks are:
+
+- `scripts/validate-shell.sh --release`
+- `xcodegen generate`
+- Xcode build and unit tests
+
+TestFlight requires an explicit manual workflow dispatch and the exact confirmation text. Never upload or trigger a hosted run unless the user explicitly authorizes it.
