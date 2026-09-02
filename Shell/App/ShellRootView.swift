@@ -1,23 +1,60 @@
 import SwiftUI
 
 struct ShellRootView: View {
-    @AppStorage("shell.onboardingComplete") private var onboardingComplete = false
-    @State private var model = ShellModel()
+    private let featureProvider: any FeatureCanvasProviding
+    @State private var model: ShellModel
+    @State private var legalConsent: LegalConsentStore
+
+    init(
+        featureProvider: any FeatureCanvasProviding,
+        model: ShellModel = ShellModel(),
+        legalConsent: LegalConsentStore = LegalConsentStore()
+    ) {
+        self.featureProvider = featureProvider
+        _model = State(initialValue: model)
+        _legalConsent = State(initialValue: legalConsent)
+    }
 
     var body: some View {
         Group {
-            if onboardingComplete {
-                shell
+            if legalConsent.requiresPresentation {
+                OnboardingView(
+                    profile: ShellConfiguration.onboarding,
+                    isReconsent: legalConsent.isReconsent,
+                    onAccept: legalConsent.acceptCurrentLegalVersion
+                )
             } else {
-                OnboardingView { onboardingComplete = true }
+                shell
             }
         }
         .environment(model)
+        .environment(model.language)
+        .environment(\.locale, model.language.locale)
         .sheet(isPresented: $model.settingsPresented) {
             NavigationStack { SettingsView() }
         }
         .sheet(isPresented: $model.labPresented) {
-            NavigationStack { ShellLabView(onResetOnboarding: { onboardingComplete = false }) }
+            NavigationStack { ShellLabView(onResetOnboarding: legalConsent.resetForTesting) }
+        }
+        .sheet(isPresented: $model.paywallPresented) {
+            NavigationStack { PaywallView() }
+        }
+        .alert("Access", isPresented: $model.accessAlertPresented) {
+            Button("ok") {}
+        } message: {
+            Text(model.accessAlertMessage)
+        }
+        .task {
+            await model.start()
+            if !legalConsent.requiresPresentation { await model.prepareAdvertisingIfNeeded() }
+        }
+        .onChange(of: legalConsent.requiresPresentation) { _, requiresPresentation in
+            if !requiresPresentation { Task { await model.prepareAdvertisingIfNeeded() } }
+        }
+        .onChange(of: model.access.shouldShowAd) { _, shouldShowAd in
+            if shouldShowAd && !legalConsent.requiresPresentation {
+                Task { await model.prepareAdvertisingIfNeeded() }
+            }
         }
     }
 
@@ -25,8 +62,8 @@ struct ShellRootView: View {
     private var shell: some View {
         if ShellConfiguration.destinations.count == 1, let destination = ShellConfiguration.destinations.first {
             NavigationStack {
-                FeatureView(destination: destination)
-                    .navigationTitle(destination.title)
+                FeatureCanvasHost(destination: destination, provider: featureProvider)
+                    .navigationTitle(destination.titleKey)
                     .shellSettingsToolbar()
             }
             .safeAreaInset(edge: .bottom) { adBanner }
@@ -34,12 +71,12 @@ struct ShellRootView: View {
             TabView(selection: $model.selectedDestination) {
                 ForEach(ShellConfiguration.destinations) { destination in
                     NavigationStack {
-                        FeatureView(destination: destination)
-                            .navigationTitle(destination.title)
+                        FeatureCanvasHost(destination: destination, provider: featureProvider)
+                            .navigationTitle(destination.titleKey)
                             .shellSettingsToolbar()
                     }
                     .tag(destination.id)
-                    .tabItem { Label(destination.title, systemImage: destination.symbol) }
+                    .tabItem { Label(destination.titleKey, systemImage: destination.symbol) }
                 }
             }
             .tabViewStyle(.sidebarAdaptable)
@@ -49,19 +86,17 @@ struct ShellRootView: View {
 
     @ViewBuilder
     private var adBanner: some View {
-        if model.shouldShowAd {
-            AdaptiveAdBanner()
+        if model.shouldRenderAd {
+            AdaptiveAdBanner(adUnitID: ShellConfiguration.advertising.bannerUnitID)
                 .frame(maxWidth: .infinity)
                 .background(.bar)
-                .accessibilityLabel("Advertisement")
+                .accessibilityLabel(Text("advertisement"))
         }
     }
 }
 
 private extension View {
-    func shellSettingsToolbar() -> some View {
-        modifier(ShellSettingsToolbar())
-    }
+    func shellSettingsToolbar() -> some View { modifier(ShellSettingsToolbar()) }
 }
 
 private struct ShellSettingsToolbar: ViewModifier {
@@ -70,7 +105,7 @@ private struct ShellSettingsToolbar: ViewModifier {
     func body(content: Content) -> some View {
         content.toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Settings", systemImage: "gearshape") { model.settingsPresented = true }
+                Button("settings", systemImage: "gearshape") { model.settingsPresented = true }
                     .labelStyle(.iconOnly)
             }
         }

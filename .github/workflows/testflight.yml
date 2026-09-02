@@ -18,10 +18,10 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IOS_BUNDLE_ID: com.goodusestudios.shelllab
-  APPLE_TEAM_ID: 49SQ3XQ68Q
-  APP_NAME: GoodUse Shell Lab
-  APP_SKU: gooduse-shell-lab
+  IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || 'com.goodusestudios.shelllab' }}
+  APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID || '49SQ3XQ68Q' }}
+  APP_NAME: ${{ vars.APP_NAME || 'GoodUse Shell Lab' }}
+  APP_SKU: ${{ vars.APP_SKU || 'gooduse-shell-lab' }}
   SCHEME: Shell
   ARCHIVE_PATH: ${{ github.workspace }}/build/Shell.xcarchive
   EXPORT_PATH: ${{ github.workspace }}/build/export
@@ -48,6 +48,11 @@ jobs:
           xcodebuild -version
       - name: Generate and verify simulator build
         run: |
+          if [[ "$IOS_BUNDLE_ID" == "com.goodusestudios.shelllab" ]]; then
+            scripts/validate-shell.sh --template
+          else
+            scripts/validate-shell.sh --release
+          fi
           xcodegen generate
           xcodebuild -project Shell.xcodeproj -scheme "$SCHEME" -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO CURRENT_PROJECT_VERSION="$BUILD_NUMBER" build
       - name: Prepare App Store Connect credentials

@@ -3,15 +3,8 @@ import SwiftUI
 enum LegalDocument: String, Identifiable {
     case privacy, terms
     var id: Self { self }
-    var title: String { self == .privacy ? "Privacy Policy" : "Terms of Use" }
-    var body: String {
-        switch self {
-        case .privacy:
-            "This shell does not collect personal data. Replace this placeholder with the derived app’s reviewed privacy policy, data inventory, retention rules, advertising disclosures, and contact details before distribution."
-        case .terms:
-            "This shell is a reusable development template. Replace these terms with the derived app’s reviewed terms, purchase conditions, subscription renewal language, and jurisdiction-specific clauses before distribution."
-        }
-    }
+    var titleKey: LocalizedStringKey { self == .privacy ? "privacyPolicy" : "termsOfUse" }
+    var bodyKey: LocalizedStringKey { self == .privacy ? "legal.privacy.body" : "legal.terms.body" }
 }
 
 struct LegalView: View {
@@ -20,13 +13,16 @@ struct LegalView: View {
 
     var body: some View {
         ScrollView {
-            Text(document.body)
-                .frame(maxWidth: 680, alignment: .leading)
-                .frame(maxWidth: .infinity)
-                .padding(24)
+            VStack(alignment: .leading, spacing: 16) {
+                Text(document.bodyKey)
+                Link("legal.openReviewedDocument", destination: document == .privacy ? ShellConfiguration.legal.privacyURL : ShellConfiguration.legal.termsURL)
+            }
+            .frame(maxWidth: 680, alignment: .leading)
+            .frame(maxWidth: .infinity)
+            .padding(24)
         }
-        .navigationTitle(document.title)
+        .navigationTitle(document.titleKey)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("done") { dismiss() } } }
     }
 }

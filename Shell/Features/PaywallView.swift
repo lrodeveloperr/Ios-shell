@@ -1,29 +1,39 @@
 import SwiftUI
 
 struct PaywallView: View {
-    @State private var purchases = PurchaseService()
+    @Environment(ShellModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 Image(systemName: "sparkles").font(.largeTitle).foregroundStyle(.tint)
-                Text("Make the useful thing unlimited.").font(.largeTitle.bold())
-                Text("One focused value statement, transparent pricing, restore access, and legal links—without dark patterns.").foregroundStyle(.secondary)
-                ForEach(["Unlimited core actions", "No advertising", "Supports continued development"], id: \.self) { benefit in
-                    Label(benefit, systemImage: "checkmark.circle.fill").symbolRenderingMode(.hierarchical)
+                Text("paywall.title").font(.largeTitle.bold())
+                Text("paywall.message").foregroundStyle(.secondary)
+                ForEach(["paywall.benefit.unlimited", "paywall.benefit.noAds", "paywall.benefit.support"], id: \.self) { benefit in
+                    Label(LocalizedStringKey(benefit), systemImage: "checkmark.circle.fill").symbolRenderingMode(.hierarchical)
                 }
-                Button(purchases.primaryProduct.map { "Continue · \($0.displayPrice)" } ?? "Continue · configured price") {
-                    Task { await purchases.purchasePrimary() }
+
+                if let product = model.access.purchases.primaryProduct {
+                    Button {
+                        Task { await model.access.purchases.purchasePrimary() }
+                    } label: {
+                        Text("\(product.displayName) · \(product.displayPrice)")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                } else {
+                    ProgressView("paywall.loadingProduct").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .frame(maxWidth: .infinity)
-                Button("Restore purchases") { Task { await purchases.restore() } }
+
+                Button("paywall.restore") { Task { await model.access.purchases.restore() } }
                     .frame(maxWidth: .infinity)
+
                 HStack {
-                    Link("Privacy", destination: ShellConfiguration.privacyURL)
+                    Link("privacy", destination: ShellConfiguration.legal.privacyURL)
                     Spacer()
-                    Link("Terms", destination: ShellConfiguration.termsURL)
+                    Link("terms", destination: ShellConfiguration.legal.termsURL)
                 }
                 .font(.footnote)
             }
@@ -31,8 +41,22 @@ struct PaywallView: View {
             .padding(24)
             .frame(maxWidth: .infinity)
         }
-        .navigationTitle("Upgrade")
-        .task { await purchases.load() }
-        .alert("Store", isPresented: $purchases.showingError) { Button("OK") {} } message: { Text(purchases.message) }
+        .navigationTitle("upgrade")
+        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("done") { dismiss() } } }
+        .onChange(of: model.access.purchases.isEntitled) { _, entitled in
+            if entitled { dismiss() }
+        }
+        .alert("store", isPresented: purchaseErrorBinding) {
+            Button("ok") {}
+        } message: {
+            Text(model.access.purchases.message)
+        }
+    }
+
+    private var purchaseErrorBinding: Binding<Bool> {
+        Binding(
+            get: { model.access.purchases.showingError },
+            set: { model.access.purchases.showingError = $0 }
+        )
     }
 }
