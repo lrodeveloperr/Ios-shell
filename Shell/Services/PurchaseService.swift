@@ -14,7 +14,8 @@ final class PurchaseService {
     private let configuration: MonetizationConfiguration
     private let cache: any EntitlementCaching
     private let now: @Sendable () -> Date
-    private var updatesTask: Task<Void, Never>?
+    @ObservationIgnored
+    nonisolated(unsafe) private var updatesTask: Task<Void, Never>?
 
     private(set) var products: [Product] = []
     private(set) var entitlementState: EntitlementState = .checking
