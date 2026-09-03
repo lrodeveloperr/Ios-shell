@@ -24,9 +24,10 @@ struct ShellRootView: View {
                 } description: {
                     Text(startupMessage)
                 }
-            } else if legalConsent.requiresPresentation {
+            } else if let onboarding = ShellConfiguration.onboarding,
+                      legalConsent.requiresPresentation {
                 OnboardingView(
-                    profile: ShellConfiguration.onboarding,
+                    profile: onboarding,
                     isReconsent: legalConsent.isReconsent,
                     onAccept: legalConsent.acceptCurrentLegalVersion
                 )
@@ -59,19 +60,23 @@ struct ShellRootView: View {
         }
         .task {
             await model.start()
-            if !legalConsent.requiresPresentation { await model.prepareAdvertisingIfNeeded() }
+            if !requiresOnboarding { await model.prepareAdvertisingIfNeeded() }
         }
-        .onChange(of: legalConsent.requiresPresentation) { _, requiresPresentation in
+        .onChange(of: requiresOnboarding) { _, requiresPresentation in
             if !requiresPresentation { Task { await model.prepareAdvertisingIfNeeded() } }
         }
         .onChange(of: model.access.shouldShowAd) { _, shouldShowAd in
-            if shouldShowAd && !legalConsent.requiresPresentation {
+            if shouldShowAd && !requiresOnboarding {
                 Task { await model.prepareAdvertisingIfNeeded() }
             }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await model.access.purchases.refreshEntitlements() } }
         }
+    }
+
+    private var requiresOnboarding: Bool {
+        ShellConfiguration.onboarding != nil && legalConsent.requiresPresentation
     }
 
     @ViewBuilder

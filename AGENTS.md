@@ -62,7 +62,7 @@ Everything else is shell infrastructure. Modify it only to fix a platform-wide d
 
 1. Write the product flow and identify exactly which operations count as successful billable actions.
 2. Select one monetization mode in `ShellConfiguration.swift`.
-3. Configure bundle identity, legal version, HTTPS links, support, destinations, languages and onboarding.
+3. Configure bundle identity, legal version, HTTPS links, support, destinations, languages and whether onboarding is genuinely needed.
 4. Replace the complete icon/brand family.
 5. Implement the feature provider and local data layer.
 6. Record a successful action only after the domain operation commits successfully.
@@ -133,7 +133,7 @@ Usage-cap, one-time-unlock, ad-free subscription and free profiles do not show t
 
 ## Onboarding and legal
 
-The shell supports `.legalOnly`, `.singleScreen` and `.guidedTour`. The current default is `.legalOnly`. Every profile ends with one explicit acceptance control. Changing the legal version forces re-consent. Privacy and terms must be readable before acceptance.
+The shell supports optional `.legalOnly`, `.singleScreen` and `.guidedTour` profiles. The template default is `.legalOnly`, but a derived app must set `ShellConfiguration.onboarding` to `nil` unless it has a genuine product or jurisdiction-specific acceptance need. An App Store privacy-policy link requirement by itself does not justify a blocking first-launch gate. When onboarding is disabled, launch directly into the product and keep Privacy and Terms reachable from Settings and every subscription purchase surface. When a profile is enabled, it ends with one explicit acceptance control; changing the legal version forces re-consent, and Privacy and Terms remain readable before acceptance.
 
 All onboarding, Settings and paywall legal controls must resolve from `ShellConfiguration.legal` and open the published HTTPS source of truth. Do not duplicate policy bodies in localization files. Before release, verify every configured destination returns a successful page and that its actual text matches the final SDK inventory, data flow, monetization, backup/restore, deletion and territory behavior—not merely a non-error placeholder host.
 

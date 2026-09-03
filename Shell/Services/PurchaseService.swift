@@ -303,7 +303,7 @@ final class PurchaseService {
                         condition = .expired
                     case .revoked:
                         condition = .revoked
-                    @unknown default:
+                    default:
                         continue
                     }
                 }

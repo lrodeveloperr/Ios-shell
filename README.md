@@ -9,7 +9,7 @@ Start with [`AGENTS.md`](AGENTS.md). It is the operational source map for the lo
 ## Stable architecture
 
 - Adaptive native `TabView`: one destination has no tab bar; two to five destinations adapt from iPhone tabs to iPad sidebar.
-- Configurable legal-only, single-screen, or guided onboarding. Every profile ends with one explicit acceptance checkbox.
+- Optional legal-only, single-screen, or guided onboarding. Set it to `nil` for direct product launch; every enabled profile ends with one explicit acceptance checkbox.
 - Legal acceptance version is stored separately from onboarding completion. Incrementing `legal.version` forces re-consent.
 - Eight monetization profiles: free, ads, ads with removal purchase, ads with subscription, one-time unlock, subscription, usage cap with one-time unlock, and usage cap with subscription.
 - The shell checks access before composing the injected feature canvas, so paid and exhausted-cap functionality cannot appear behind an advisory callback.
@@ -24,7 +24,7 @@ Both GitHub Actions workflows are manual-only so routine commits and pull reques
 ## Derive an app
 
 1. Implement `FeatureCanvasProviding` and inject it in `ShellApp`. The shell composes it only when access is allowed; feature code calls `recordSuccessfulAction` only after a confirmed successful capped action.
-2. Configure identity, destinations, onboarding, legal version/URLs, monetization, product IDs, languages, and advertising in `ShellConfiguration.swift` and `project.yml`.
+2. Configure identity, destinations, whether onboarding is needed, legal version/URLs, monetization, product IDs, languages, and advertising in `ShellConfiguration.swift` and `project.yml`.
 3. Replace the app icon and the reviewed legal text in every shipped localization.
 4. If advertising is enabled, replace both Google demo IDs and complete the AdMob/UMP messages and privacy declarations for the derived app.
 5. Create matching App Store Connect products. Product types must match the chosen profile.

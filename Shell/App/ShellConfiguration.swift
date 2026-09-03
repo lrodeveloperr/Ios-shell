@@ -11,7 +11,9 @@ enum ShellConfiguration {
         termsURL: URL(string: "https://example.com/#replace-with-terms-of-use")!
     )
 
-    static let onboarding: OnboardingProfile = .legalOnly
+    /// Set to nil when the product does not have a genuine onboarding need.
+    /// Published legal links alone do not require a blocking acceptance screen.
+    static let onboarding: OnboardingProfile? = .legalOnly
 
     static let monetization = MonetizationConfiguration(
         mode: .usageCapWithSubscription,
