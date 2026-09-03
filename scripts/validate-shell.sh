@@ -12,7 +12,7 @@ require_file() { [[ -f "$1" ]] || fail "Missing $1"; }
 require_text() { grep -Fq "$2" "$1" || fail "$1 must contain: $2"; }
 reject_text() { ! grep -Fq "$2" "$1" || fail "$1 contains forbidden text: $2"; }
 
-for path in project.yml AGENTS.md docs/APPLE_STORE_COMPLIANCE.md docs/UI_REGRESSION_MATRIX.md SHELL_CHANGELOG.md MIGRATIONS.md Shell/App/ShellConfiguration.swift Shell/App/ShellContract.swift Shell/App/FeatureCanvasBoundary.swift Shell/Services/PurchaseService.swift Shell/Services/AccessController.swift Shell/Services/NativeBackup.swift Shell/Services/AdConsentService.swift Shell/Resources/Info.plist Shell/Resources/Info-Ads.plist Shell/Resources/PrivacyInfo.xcprivacy Shell/Resources/LocalizationBaseline.swift Shell/Resources/gooduse-common-localization-v1.json Shell/Resources/Assets.xcassets/AppIcon.appiconset/ShellIcon-1024.png scripts/check-commerce-branding.sh; do
+for path in project.yml AGENTS.md docs/APPLE_STORE_COMPLIANCE.md docs/DERIVED_APP_RELEASE_WIRING.md docs/UI_REGRESSION_MATRIX.md SHELL_CHANGELOG.md MIGRATIONS.md Shell/App/ShellConfiguration.swift Shell/App/ShellContract.swift Shell/App/FeatureCanvasBoundary.swift Shell/Services/AppLocalization.swift Shell/Services/PurchaseService.swift Shell/Services/AccessController.swift Shell/Services/NativeBackup.swift Shell/Services/AdConsentService.swift Shell/Resources/Info.plist Shell/Resources/Info-Ads.plist Shell/Resources/PrivacyInfo.xcprivacy Shell/Resources/LocalizationBaseline.swift Shell/Resources/gooduse-common-localization-v1.json Shell/Resources/Assets.xcassets/AppIcon.appiconset/ShellIcon-1024.png scripts/check-commerce-branding.sh; do
   require_file "$path"
 done
 
@@ -33,7 +33,7 @@ require_text project.yml 'package: GoogleMobileAds'
 require_text Shell/Services/AdConsentService.swift '#if ADS_ENABLED'
 require_text Shell/Services/AdaptiveAdBanner.swift '#if ADS_ENABLED'
 
-for mode_name in free ads adsWithRemovePurchase oneTimeUnlock subscription usageCapWithOneTimeUnlock usageCapWithSubscription; do
+for mode_name in free ads adsWithRemovePurchase adsWithSubscription oneTimeUnlock subscription usageCapWithOneTimeUnlock usageCapWithSubscription; do
   require_text Shell/App/ShellConfiguration.swift "case $mode_name"
 done
 for seam in 'Transaction.updates' 'Transaction.currentEntitlements' 'AppStore.sync()' 'revocationDate' 'expirationDate'; do
@@ -42,6 +42,13 @@ done
 require_text Shell/Services/AdConsentService.swift 'ConsentForm.loadAndPresentIfRequired'
 require_text Shell/App/ShellRootView.swift '.safeAreaInset(edge: .bottom, spacing: 0) { adBanner }'
 require_text Shell/Services/AdaptiveAdBanner.swift '.frame(height: adSize.size.height)'
+require_text Shell/Features/PaywallView.swift 'paywall.retryProduct'
+require_text Shell/Services/LanguageController.swift 'supported.contains(stored)'
+require_text Shell/Services/NativeBackup.swift 'current free/paid limits'
+require_text .github/workflows/testflight.yml 'date -u +%y%m%d%H%M'
+require_text .github/workflows/testflight.yml 'Run unit tests before upload'
+require_text .github/workflows/welding-wallet-screenshot-testflight.yml 'GOOGLE_TEST_ADMOB_BANNER_ID'
+require_text .github/workflows/welding-wallet-screenshot-testflight.yml 'Run unit tests before upload'
 reject_text Shell/Features/SettingsView.swift 'NavigationLink { PaywallView() }'
 require_text Shell/Features/OnboardingView.swift 'Toggle(isOn: $accepted)'
 require_text Shell/Services/LegalConsentStore.swift 'acceptedLegalVersion'
@@ -111,14 +118,14 @@ fi
 
 selected_mode="$(sed -n 's/.*mode: \.\([A-Za-z]*\).*/\1/p' Shell/App/ShellConfiguration.swift | head -1)"
 if [[ "$mode" == "--release-ads" ]]; then
-  [[ "$selected_mode" == "ads" || "$selected_mode" == "adsWithRemovePurchase" ]] || fail "--release-ads requires an advertising monetization mode"
+  [[ "$selected_mode" == "ads" || "$selected_mode" == "adsWithRemovePurchase" || "$selected_mode" == "adsWithSubscription" ]] || fail "--release-ads requires an advertising monetization mode"
   reject_text Shell/App/ShellConfiguration.swift 'ca-app-pub-3940256099942544/'
   reject_text Shell/Resources/Info-Ads.plist 'ca-app-pub-3940256099942544~'
   if grep -A1 -F '<key>NSPrivacyCollectedDataTypes</key>' Shell/Resources/PrivacyInfo.xcprivacy | grep -Fq '<array/>'; then
     fail "Advertising release must declare reviewed collected-data types"
   fi
 elif [[ "$mode" == "--release" ]]; then
-  [[ "$selected_mode" != "ads" && "$selected_mode" != "adsWithRemovePurchase" ]] || fail "Advertising mode must use --release-ads and the ShellAds target"
+  [[ "$selected_mode" != "ads" && "$selected_mode" != "adsWithRemovePurchase" && "$selected_mode" != "adsWithSubscription" ]] || fail "Advertising mode must use --release-ads and the ShellAds target"
 fi
 
 echo "iOS shell validation passed ($mode)."

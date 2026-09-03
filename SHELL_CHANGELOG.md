@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added the reusable production wiring checklist from the Welding Gas Wallet audit, including archive/store parity and backup-import integrity gates.
+- Added the ads-with-subscription mode so verified subscription access can remove a free-user banner without app-local shell forks.
+- Added localized StoreKit failure messages and a terminal product-load retry state.
+- Rejected stale stored language selections and added closest-supported locale fallback tests.
+- Made TestFlight build numbers timestamp-safe and required unit tests before upload.
 - Sized adaptive banners from the SDK response and moved their safe-area reservation inside each destination, preventing the banner from clipping the native tab bar.
 - Replaced duplicated placeholder legal bodies with one in-app-browser path to the configured published documents.
 - Added release blockers for unchanged generic paywall copy and made the paywall a modal from Settings so it cannot show redundant Back and Done controls.

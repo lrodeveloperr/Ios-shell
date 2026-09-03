@@ -18,6 +18,8 @@ protocol NativeBackupProviding: Sendable {
     var providerName: String { get }
     func listBackups() async throws -> [BackupRecord]
     func createBackup() async throws
+    /// Decode into temporary state, validate schema and references, enforce all
+    /// current free/paid limits, then commit atomically. Never trust backup data.
     func restoreBackup(id: String, resolution: BackupConflictResolution) async throws
 }
 

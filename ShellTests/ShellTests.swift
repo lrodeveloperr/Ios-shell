@@ -3,8 +3,8 @@ import XCTest
 
 @MainActor
 final class ShellTests: XCTestCase {
-    func testAllSevenMonetizationModesResolveAccess() {
-        for mode in [MonetizationMode.free, .ads, .adsWithRemovePurchase] {
+    func testAllEightMonetizationModesResolveAccess() {
+        for mode in [MonetizationMode.free, .ads, .adsWithRemovePurchase, .adsWithSubscription] {
             XCTAssertEqual(resolve(mode, entitled: false, checking: true, free: false), .allowed)
         }
         for mode in [MonetizationMode.oneTimeUnlock, .subscription] {
@@ -25,6 +25,9 @@ final class ShellTests: XCTestCase {
         XCTAssertFalse(AccessController.resolveAdVisibility(mode: .adsWithRemovePurchase, isEntitled: false, isChecking: true))
         XCTAssertTrue(AccessController.resolveAdVisibility(mode: .adsWithRemovePurchase, isEntitled: false, isChecking: false))
         XCTAssertFalse(AccessController.resolveAdVisibility(mode: .adsWithRemovePurchase, isEntitled: true, isChecking: false))
+        XCTAssertFalse(AccessController.resolveAdVisibility(mode: .adsWithSubscription, isEntitled: false, isChecking: true))
+        XCTAssertTrue(AccessController.resolveAdVisibility(mode: .adsWithSubscription, isEntitled: false, isChecking: false))
+        XCTAssertFalse(AccessController.resolveAdVisibility(mode: .adsWithSubscription, isEntitled: true, isChecking: false))
         XCTAssertFalse(AccessController.resolveAdVisibility(mode: .subscription, isEntitled: false, isChecking: false))
     }
 
@@ -73,6 +76,7 @@ final class ShellTests: XCTestCase {
         XCTAssertEqual(configuration(.free).productIDs, [])
         XCTAssertEqual(configuration(.ads).productIDs, [])
         XCTAssertEqual(configuration(.adsWithRemovePurchase).productIDs, ["lifetime"])
+        XCTAssertEqual(configuration(.adsWithSubscription).productIDs, ["monthly"])
         XCTAssertEqual(configuration(.oneTimeUnlock).productIDs, ["lifetime"])
         XCTAssertEqual(configuration(.subscription).productIDs, ["monthly"])
         XCTAssertEqual(configuration(.usageCapWithOneTimeUnlock).productIDs, ["lifetime"])
@@ -85,6 +89,15 @@ final class ShellTests: XCTestCase {
         XCTAssertEqual(Set(ShellConfiguration.destinations.map(\.id)).count, ShellConfiguration.destinations.count)
         XCTAssertTrue(ShellConfiguration.supportedLanguages.contains { $0.id == "system" })
         XCTAssertTrue(ShellConfiguration.supportedLanguages.contains { $0.id == "en" })
+    }
+
+    func testLanguageSelectionRejectsStaleUnsupportedValues() {
+        let defaults = makeDefaults()
+        defaults.set("fr", forKey: "shell.language")
+        let language = LanguageController(defaults: defaults, preferredLanguages: ["es-MX"])
+        XCTAssertEqual(language.selection, "system")
+        XCTAssertEqual(LanguageController.closestSupported(to: "es-MX"), "es")
+        XCTAssertEqual(LanguageController.closestSupported(to: "fr-CA"), "en")
     }
 
     func testSafeTemplateDefaultsAndSharedLocalizationContract() {

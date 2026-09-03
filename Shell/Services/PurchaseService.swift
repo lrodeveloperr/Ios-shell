@@ -65,7 +65,7 @@ final class PurchaseService {
         switch configuration.mode {
         case .adsWithRemovePurchase, .oneTimeUnlock, .usageCapWithOneTimeUnlock:
             desiredID = configuration.lifetimeProductID
-        case .subscription, .usageCapWithSubscription:
+        case .adsWithSubscription, .subscription, .usageCapWithSubscription:
             desiredID = configuration.subscriptionProductID
         case .free, .ads:
             return nil
@@ -91,7 +91,7 @@ final class PurchaseService {
 
     func purchasePrimary() async {
         guard let product = primaryProduct else {
-            message = "The App Store product is unavailable. Check the product identifier and App Store Connect state."
+            message = AppLocalization.string("purchase.productUnavailable", locale: AppLocalization.selectedLocale)
             showingError = true
             return
         }
@@ -102,7 +102,7 @@ final class PurchaseService {
                 await transaction.finish()
                 await refreshEntitlements()
             case .pending:
-                message = "The purchase is pending approval. Access will update automatically when the App Store completes it."
+                message = AppLocalization.string("purchase.pending", locale: AppLocalization.selectedLocale)
                 showingError = true
             case .userCancelled:
                 break
@@ -182,12 +182,14 @@ final class PurchaseService {
     }
 
     private func present(_ error: Error) {
-        message = error.localizedDescription
+        message = error is PurchaseError
+            ? AppLocalization.string("purchase.verificationFailed", locale: AppLocalization.selectedLocale)
+            : error.localizedDescription
         showingError = true
     }
 }
 
 private enum PurchaseError: LocalizedError {
     case failedVerification
-    var errorDescription: String? { "The App Store transaction could not be verified." }
+    var errorDescription: String? { nil }
 }

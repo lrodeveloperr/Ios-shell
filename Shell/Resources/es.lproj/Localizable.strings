@@ -56,7 +56,12 @@
 "paywall.benefit.noAds" = "Sin anuncios";
 "paywall.benefit.support" = "Apoya el desarrollo continuo";
 "paywall.loadingProduct" = "Cargando el precio de App Store…";
+"paywall.purchase" = "Mejorar";
+"paywall.retryProduct" = "Reintentar App Store";
 "paywall.restore" = "Restaurar compras";
+"purchase.productUnavailable" = "El producto de App Store no está disponible. Comprueba el identificador del producto y su estado en App Store Connect.";
+"purchase.pending" = "La compra está pendiente de aprobación. El acceso se actualizará automáticamente cuando App Store la complete.";
+"purchase.verificationFailed" = "No se pudo verificar la transacción de App Store.";
 "paywall.subscriptionDisclosure" = "El pago se carga a tu cuenta de Apple al confirmar. La suscripción se renueva automáticamente salvo que la canceles en los ajustes de tu cuenta de Apple antes de la renovación.";
 "paywall.period.day.one" = "cada día";
 "paywall.period.day.other %lld" = "cada %lld días";

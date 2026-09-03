@@ -12,11 +12,11 @@ Run only when the user authorizes testing. Source tests live in `ShellUITests`; 
 | RTL | Arabic or Hebrew pseudolocalized build | navigation, chevrons, text alignment and directional icons mirror correctly |
 | Localization | every advertised locale | no raw keys, accidental English, clipped price/period or untranslated legal/purchase text |
 | Onboarding | first install and revised legal version | exactly one explicit acceptance gate; links readable before acceptance; re-consent triggers after version change |
-| Commerce | one-time, subscription, cap exhausted, pending, cancelled, failure, restore | product-specific title/message/benefits match the actual paid unlock; localized StoreKit price/period; no duplicate Back-and-Done controls; no app logo/icon/brand asset; no false unlock; recovery is clear |
+| Commerce | one-time, subscription, cap exhausted, product unavailable, retry, pending, cancelled, failure, restore | product-specific title/message/benefits match the actual paid unlock; localized StoreKit price/period; no permanent spinner; no duplicate Back-and-Done controls; no app logo/icon/brand asset; no false unlock; recovery is clear |
 | Ads target | consent required/not required/error; remove-ads bought | no request before consent permits; privacy choices available; banner uses the SDK-reported adaptive height inside each destination content safe area; native tab bar remains fully visible below it; removed after verified entitlement |
 | Legal links | onboarding, Settings and paywall | every control opens the configured current HTTPS document in the in-app browser; no copied placeholder body; all published destinations return success before release |
 | Ad-free target | default `Shell` archive | no banner gap; no Google SDK linkage; no GAD/SKAdNetwork metadata |
-| Backup option | disabled and app-enabled provider | no UI/capability when disabled; explicit conflict choice; failed restore preserves device data |
+| Backup option | disabled and app-enabled provider | no UI/capability when disabled; explicit conflict choice; malformed, duplicate-ID, broken-reference and over-limit restores fail without mutating device data |
 
 Required automation destinations when execution is authorized:
 

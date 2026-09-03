@@ -11,7 +11,7 @@ Start with [`AGENTS.md`](AGENTS.md). It is the operational source map for the lo
 - Adaptive native `TabView`: one destination has no tab bar; two to five destinations adapt from iPhone tabs to iPad sidebar.
 - Configurable legal-only, single-screen, or guided onboarding. Every profile ends with one explicit acceptance checkbox.
 - Legal acceptance version is stored separately from onboarding completion. Incrementing `legal.version` forces re-consent.
-- Seven monetization profiles: free, ads, ads with removal purchase, one-time unlock, subscription, usage cap with one-time unlock, and usage cap with subscription.
+- Eight monetization profiles: free, ads, ads with removal purchase, ads with subscription, one-time unlock, subscription, usage cap with one-time unlock, and usage cap with subscription.
 - The shell checks access before composing the injected feature canvas, so paid and exhausted-cap functionality cannot appear behind an advisory callback.
 - Successful usage is counted only after completion, keyed by a stable product-owned identifier of at most 128 UTF-8 bytes, persisted, and deduplicated.
 - StoreKit 2 verification, transaction updates, restore, revocation/expiry handling, and a Keychain offline snapshot whose subscriptions stop at their verified expiry.

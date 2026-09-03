@@ -56,7 +56,12 @@
 "paywall.benefit.noAds" = "No advertising";
 "paywall.benefit.support" = "Supports continued development";
 "paywall.loadingProduct" = "Loading App Store price…";
+"paywall.purchase" = "Upgrade";
+"paywall.retryProduct" = "Retry App Store";
 "paywall.restore" = "Restore purchases";
+"purchase.productUnavailable" = "The App Store product is unavailable. Check the product identifier and App Store Connect state.";
+"purchase.pending" = "The purchase is pending approval. Access will update automatically when the App Store completes it.";
+"purchase.verificationFailed" = "The App Store transaction could not be verified.";
 "paywall.subscriptionDisclosure" = "Payment is charged to your Apple Account at confirmation. The subscription renews automatically unless cancelled in Apple Account settings before renewal.";
 "paywall.period.day.one" = "every day";
 "paywall.period.day.other %lld" = "every %lld days";

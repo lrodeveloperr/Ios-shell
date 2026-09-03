@@ -40,6 +40,7 @@ Read this file before changing code.
 | Optional native backup seam | `Shell/Services/NativeBackup.swift` |
 | Shared 31-locale terms | `Shell/Resources/gooduse-common-localization-v1.json` |
 | Localization release checklist | `docs/LOCALIZATION_RELEASE_CHECKLIST.md` |
+| Derived-app release wiring | `docs/DERIVED_APP_RELEASE_WIRING.md` |
 
 ## What a derived app may replace
 
@@ -86,6 +87,7 @@ Do not redesign settled shell UI while implementing the product canvas.
 | `.free` | Always | No | None |
 | `.ads` | Always | Yes | None |
 | `.adsWithRemovePurchase` | Always | Until verified unlock | One-time |
+| `.adsWithSubscription` | Always | Until verified subscription | Subscription |
 | `.oneTimeUnlock` | Verified purchase only | No | One-time |
 | `.subscription` | Active verified subscription only | No | Subscription |
 | `.usageCapWithOneTimeUnlock` | Free successful actions, then verified unlock | No | One-time |
@@ -97,12 +99,12 @@ The current template default is `.usageCapWithSubscription` with five free succe
 
 The anchored adaptive banner is implemented inside each destination's product-content safe area—not on the outer `TabView`. The outer placement clips or displaces the native iPhone tab bar. Its slot must use the height returned by the Mobile Ads SDK for the current width; never force a fixed 50/60-point height around a large adaptive banner. The correctly sized slot is reserved while consent resolves, and an ad request occurs only when all conditions are true:
 
-- the selected monetization mode is `.ads` or `.adsWithRemovePurchase`;
+- the selected monetization mode is `.ads`, `.adsWithRemovePurchase` or `.adsWithSubscription`;
 - UMP says ads may be requested;
 - Mobile Ads has been prepared; and
 - no verified remove-ads entitlement is active.
 
-Subscription, usage-cap, one-time-unlock and free profiles do not show the banner. Replace Google demo IDs only in an ad-enabled derived app and complete the corresponding UMP, privacy-manifest and App Store disclosures.
+Usage-cap, one-time-unlock, ad-free subscription and free profiles do not show the banner. Replace Google demo IDs only in an ad-enabled derived app and complete the corresponding UMP, privacy-manifest and App Store disclosures.
 
 ## Revenue integrity
 
@@ -112,6 +114,7 @@ Subscription, usage-cap, one-time-unlock and free profiles do not show the banne
 - Pending or cancelled purchases do not grant access.
 - `Transaction.updates` and `Transaction.currentEntitlements` keep entitlement state current.
 - Revoked and expired products are excluded.
+- Product loading has a localized terminal failure and retry state; it must never spin forever after loading ends.
 - Subscription cache access stops at verified expiry.
 - Keychain usage records are durable, bounded and deduplicated.
 - Shell Lab and entitlement overrides must remain inside `#if DEBUG`.
@@ -139,6 +142,7 @@ All onboarding, Settings and paywall legal controls must resolve from `ShellConf
 - `supportedLanguages` is a release claim. Add a locale there only after the complete product, notification, accessibility, commerce and validation-error catalog passes `docs/LOCALIZATION_RELEASE_CHECKLIST.md`; shared shell terms do not qualify a language.
 - Every non-system `supportedLanguages` identifier must have a matching `.lproj` catalog with exact English key parity. Run `python3 scripts/validate-localizations.py`; missing catalogs and key drift block release.
 - Keep persisted enum/raw values stable, but map them to localization keys for presentation. Never show `rawValue` as user-facing text.
+- Validate a stored language selection against the current shipped catalog on every launch. Removed locales must fall back to `system` when offered, otherwise to the closest enabled language and then English.
 - Parse and format numbers, money, dates and quantities with the selected app locale, including comma-decimal input. Use plural rules or reviewed singular/plural keys; never concatenate English grammar.
 - Search must recognize localized displayed terminology as well as stored canonical values. Notification copy and accessibility labels must use the selected locale.
 - Review region-specific product terminology, text expansion and bidirectional layout before enabling a locale. An RTL language requires an actual RTL pass, not only translated strings.
@@ -158,9 +162,9 @@ When execution is authorized, the release checks are:
 
 - `scripts/validate-shell.sh --release`
 - `xcodegen generate`
-- Xcode build and unit tests
+- Xcode Release build and unit tests before archive/upload
 
-TestFlight requires an explicit manual workflow dispatch and the exact confirmation text. Never upload or trigger a hosted run unless the user explicitly authorizes it.
+TestFlight requires an explicit manual workflow dispatch and the exact confirmation text. Its build number must be unique and monotonically safe relative to prior uploads; a UTC timestamp plus workflow run number is the shell default. Never upload or trigger a hosted run unless the user explicitly authorizes it.
 
 The Welding Wallet bridge workflow may create a `production_test_ads` TestFlight build that exercises the real free limit and StoreKit subscription while using Google's official demo app/banner IDs. That build is for internal testing only and must never be selected for App Store review or release. A storefront binary requires publisher-owned AdMob IDs and the full advertising release gate.
 
@@ -179,5 +183,6 @@ Only an intentionally ad-supported app uses `ShellAds`, `Info-Ads.plist`, and an
 
 - Treat `docs/APPLE_STORE_COMPLIANCE.md` as a release gate, not a guarantee. Re-open every official Apple source and mark each current numbered guideline subsection PASS or N/A with evidence.
 - `gooduse-common-localization-v1.json` is the reviewed 31-locale shared terminology contract copied from the Android shell. It does not authorize advertising a locale until all app, legal, product and store text is complete.
-- Backup is disabled by default and has no entitlement. Enable it only with an app-owned `NativeBackupProviding` implementation, reviewed privacy disclosures, versioned serialization and recoverable conflict handling.
+- Backup is disabled by default and has no entitlement. Enable it only with an app-owned `NativeBackupProviding` implementation, reviewed privacy disclosures, versioned serialization and recoverable conflict handling. Decode untrusted backups into temporary state, validate IDs/references/values, enforce every current free or paid limit, and commit atomically only after all checks pass.
+- Complete `docs/DERIVED_APP_RELEASE_WIRING.md` before every TestFlight production-logic build and storefront submission. Code, final archive, policies and App Store Connect metadata must describe the same product.
 - Record the adopted `ShellContract.currentVersion`. A breaking adoption requires ordered, idempotent `ShellMigration` steps; never erase data or silently skip a missing step.

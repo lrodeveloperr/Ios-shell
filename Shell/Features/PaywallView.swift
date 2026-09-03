@@ -32,7 +32,8 @@ struct PaywallView: View {
                         Task { await model.access.purchases.purchasePrimary() }
                     } label: {
                         VStack(spacing: 2) {
-                            Text(product.displayName)
+                            Text("paywall.purchase")
+                                .font(.headline)
                             if let subscription = product.subscription {
                                 Text(product.displayPrice) + Text(" · ") + Text(periodKey(subscription.subscriptionPeriod))
                             } else {
@@ -44,8 +45,16 @@ struct PaywallView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     .accessibilityIdentifier("shell.paywall.purchase")
-                } else {
+                } else if model.access.purchases.isLoadingProducts {
                     ProgressView("paywall.loadingProduct").frame(maxWidth: .infinity)
+                } else {
+                    Button("paywall.retryProduct") {
+                        Task { await model.access.purchases.start() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("shell.paywall.retryProduct")
                 }
 
                 if model.access.purchases.primaryProduct?.subscription != nil {

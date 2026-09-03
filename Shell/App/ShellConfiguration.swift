@@ -77,14 +77,14 @@ struct MonetizationConfiguration: Sendable {
         switch mode {
         case .adsWithRemovePurchase, .oneTimeUnlock, .usageCapWithOneTimeUnlock:
             [lifetimeProductID]
-        case .subscription, .usageCapWithSubscription:
+        case .adsWithSubscription, .subscription, .usageCapWithSubscription:
             [subscriptionProductID]
         case .free, .ads:
             []
         }
     }
 
-    var includesAdvertising: Bool { mode == .ads || mode == .adsWithRemovePurchase }
+    var includesAdvertising: Bool { mode == .ads || mode == .adsWithRemovePurchase || mode == .adsWithSubscription }
     var includesPurchase: Bool { !productIDs.isEmpty }
 }
 
@@ -106,6 +106,7 @@ enum MonetizationMode: String, CaseIterable, Identifiable, Sendable {
     case free
     case ads
     case adsWithRemovePurchase
+    case adsWithSubscription
     case oneTimeUnlock
     case subscription
     case usageCapWithOneTimeUnlock
@@ -117,6 +118,7 @@ enum MonetizationMode: String, CaseIterable, Identifiable, Sendable {
         case .free: "Free"
         case .ads: "Ads"
         case .adsWithRemovePurchase: "Ads + remove purchase"
+        case .adsWithSubscription: "Ads + subscription"
         case .oneTimeUnlock: "One-time unlock"
         case .subscription: "Subscription"
         case .usageCapWithOneTimeUnlock: "Usage cap + one-time unlock"
