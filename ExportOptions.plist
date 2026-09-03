@@ -7,9 +7,14 @@
     <key>destination</key>
     <string>export</string>
     <key>signingStyle</key>
-    <string>automatic</string>
+    <string>manual</string>
     <key>signingCertificate</key>
     <string>Apple Distribution</string>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>com.goodusestudios.shelllab</key>
+        <string>GoodUse Shell Lab App Store CI</string>
+    </dict>
     <key>teamID</key>
     <string>49SQ3XQ68Q</string>
     <key>manageAppVersionAndBuildNumber</key>
