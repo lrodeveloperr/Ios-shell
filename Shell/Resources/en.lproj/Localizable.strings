@@ -84,10 +84,6 @@
 "shellLab" = "Shell Lab";
 "shellLab.subtitle" = "Exercise reusable states";
 
-"legal.privacy.body" = "REPLACE_WITH_REVIEWED_PRIVACY_POLICY";
-"legal.terms.body" = "REPLACE_WITH_REVIEWED_TERMS_OF_USE";
-"legal.openReviewedDocument" = "Open full document";
-
 "backup" = "Backup";
 "backup.create" = "Create backup";
 "backup.available" = "Available backups";

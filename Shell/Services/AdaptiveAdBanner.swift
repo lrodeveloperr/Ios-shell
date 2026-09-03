@@ -6,16 +6,31 @@ import UIKit
 
 struct AdaptiveAdBanner: View {
     let adUnitID: String
+    let requestsAds: Bool
+    @State private var availableWidth: CGFloat = 320
+
+    private var adSize: AdSize {
+        largeAnchoredAdaptiveBanner(width: max(1, availableWidth))
+    }
 
     var body: some View {
-        GeometryReader { geometry in
-            let width = max(320, geometry.size.width)
-            let adSize = largeAnchoredAdaptiveBanner(width: width)
-            BannerContainer(adSize: adSize, adUnitID: adUnitID)
-                .frame(width: adSize.size.width, height: adSize.size.height)
-                .frame(maxWidth: .infinity)
+        Group {
+            if requestsAds && !adUnitID.isEmpty {
+                BannerContainer(adSize: adSize, adUnitID: adUnitID)
+                    .frame(width: adSize.size.width, height: adSize.size.height)
+            } else {
+                Color.clear
+                    .accessibilityHidden(true)
+            }
         }
-        .frame(height: 60)
+        .frame(maxWidth: .infinity)
+        .frame(height: adSize.size.height)
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.width
+        } action: { width in
+            guard width > 0, abs(width - availableWidth) > 0.5 else { return }
+            availableWidth = width
+        }
     }
 }
 
@@ -51,6 +66,7 @@ private struct BannerContainer: UIViewRepresentable {
 /// Keeps root composition identical while producing no advertising view.
 struct AdaptiveAdBanner: View {
     let adUnitID: String
+    let requestsAds: Bool
     var body: some View { EmptyView() }
 }
 #endif

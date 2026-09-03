@@ -3,12 +3,14 @@ import SwiftUI
 struct SettingsView: View {
     let model: ShellModel
     @Environment(\.dismiss) private var dismiss
+    @State private var showPaywall = false
+    @State private var legalDocument: LegalDocument?
 
     var body: some View {
         List {
             if model.access.configuration.includesPurchase {
                 Section {
-                    NavigationLink { PaywallView() } label: {
+                    Button { showPaywall = true } label: {
                         SettingsLabel("upgrade", subtitle: "upgrade.subtitle", symbol: "sparkles")
                     }
                     .accessibilityIdentifier("shell.settings.upgrade")
@@ -47,10 +49,10 @@ struct SettingsView: View {
             }
 
             Section("legal") {
-                NavigationLink { LegalView(document: .privacy) } label: {
+                Button { legalDocument = .privacy } label: {
                     SettingsLabel("privacyPolicy", symbol: "hand.raised")
                 }
-                NavigationLink { LegalView(document: .terms) } label: {
+                Button { legalDocument = .terms } label: {
                     SettingsLabel("termsOfUse", symbol: "doc.text")
                 }
             }
@@ -73,6 +75,16 @@ struct SettingsView: View {
         .navigationTitle("settings")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("done") { dismiss() } } }
+        .sheet(isPresented: $showPaywall) {
+            NavigationStack { PaywallView(showsDoneButton: true) }
+                .environment(model)
+                .environment(model.language)
+                .environment(\.locale, model.language.locale)
+        }
+        .sheet(item: $legalDocument) { document in
+            LegalView(document: document)
+                .ignoresSafeArea()
+        }
     }
 
     private var languageSubtitle: String {

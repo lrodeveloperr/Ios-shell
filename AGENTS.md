@@ -62,7 +62,7 @@ Everything else is shell infrastructure. Modify it only to fix a platform-wide d
 5. Implement the feature provider and local data layer.
 6. Record a successful action only after the domain operation commits successfully.
 7. Configure matching App Store Connect products and advertising, when applicable.
-8. Replace every template placeholder and finish localization.
+8. Replace every template placeholder and finish localization. Rewrite the complete paywall title, message and benefit list around the derived app's actual paid outcome; generic shell claims such as “useful thing” or “core actions” are release blockers.
 9. Review the privacy manifest and store disclosures against actual behavior.
 10. Perform only the validation or upload explicitly authorized for the task.
 
@@ -94,7 +94,7 @@ The current template default is `.usageCapWithSubscription` with five free succe
 
 ### Lower ad banner
 
-The anchored adaptive banner is already implemented with `.safeAreaInset(edge: .bottom)`. It sits above the native tab bar and never overlays the product canvas. It renders only when all conditions are true:
+The anchored adaptive banner is implemented inside each destination's product-content safe area—not on the outer `TabView`. The outer placement clips or displaces the native iPhone tab bar. Its slot must use the height returned by the Mobile Ads SDK for the current width; never force a fixed 50/60-point height around a large adaptive banner. The correctly sized slot is reserved while consent resolves, and an ad request occurs only when all conditions are true:
 
 - the selected monetization mode is `.ads` or `.adsWithRemovePurchase`;
 - UMP says ads may be requested;
@@ -119,6 +119,8 @@ Subscription, usage-cap, one-time-unlock and free profiles do not show the banne
 
 The shell supports `.legalOnly`, `.singleScreen` and `.guidedTour`. The current default is `.legalOnly`. Every profile ends with one explicit acceptance control. Changing the legal version forces re-consent. Privacy and terms must be readable before acceptance.
 
+All onboarding, Settings and paywall legal controls must resolve from `ShellConfiguration.legal` and open the published HTTPS source of truth. Do not duplicate policy bodies in localization files. Before release, verify every configured destination returns a successful page and contains the intended app policy—not merely a non-error placeholder host.
+
 ## Navigation and adaptation
 
 - Configure one to five destinations.
@@ -142,6 +144,8 @@ The shell supports `.legalOnly`, `.singleScreen` and `.guidedTour`. The current 
 ## Release blockers
 
 A derived release must not ship with template identity, example URLs, support email, demo product IDs, Google test ad IDs, placeholder legal text, placeholder icon references or the sample provider.
+
+The paywall is app code, not a reusable marketing draft. A release must replace the shell's generic title, explanation and benefits in every shipped localization. Benefits must name only entitlements the selected monetization configuration and StoreKit product actually grant; the displayed price and period remain StoreKit-derived. When Settings opens the paywall, present it modally or otherwise ensure the navigation bar does not show both Back and Done for the same exit.
 
 When execution is authorized, the release checks are:
 

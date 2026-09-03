@@ -51,7 +51,7 @@ struct ShellRootView: View {
         }
 #endif
         .sheet(isPresented: $model.paywallPresented) {
-            NavigationStack { PaywallView() }
+            NavigationStack { PaywallView(showsDoneButton: true) }
                 .environment(model)
                 .environment(model.language)
                 .environment(\.locale, model.language.locale)
@@ -73,36 +73,39 @@ struct ShellRootView: View {
     @ViewBuilder
     private var shell: some View {
         if ShellConfiguration.destinations.count == 1, let destination = ShellConfiguration.destinations.first {
-            NavigationStack {
-                FeatureCanvasHost(destination: destination, provider: featureProvider)
-                    .navigationTitle(Text(LocalizedStringKey(destination.titleKey)))
-                    .shellSettingsToolbar()
-            }
-            .safeAreaInset(edge: .bottom) { adBanner }
+            destinationStack(destination)
         } else {
             TabView(selection: $model.selectedDestination) {
                 ForEach(ShellConfiguration.destinations) { destination in
-                    NavigationStack {
-                        FeatureCanvasHost(destination: destination, provider: featureProvider)
-                            .navigationTitle(Text(LocalizedStringKey(destination.titleKey)))
-                            .shellSettingsToolbar()
-                    }
+                    destinationStack(destination)
                     .tag(destination.id)
                     .tabItem { Label(LocalizedStringKey(destination.titleKey), systemImage: destination.symbol) }
                 }
             }
             .tabViewStyle(.sidebarAdaptable)
-            .safeAreaInset(edge: .bottom, spacing: 0) { adBanner }
+        }
+    }
+
+    private func destinationStack(_ destination: ShellDestination) -> some View {
+        NavigationStack {
+            FeatureCanvasHost(destination: destination, provider: featureProvider)
+                .safeAreaInset(edge: .bottom, spacing: 0) { adBanner }
+                .navigationTitle(Text(LocalizedStringKey(destination.titleKey)))
+                .shellSettingsToolbar()
         }
     }
 
     @ViewBuilder
     private var adBanner: some View {
         if model.shouldRenderAd {
-            AdaptiveAdBanner(adUnitID: ShellConfiguration.advertising.bannerUnitID)
+            AdaptiveAdBanner(
+                adUnitID: ShellConfiguration.advertising.bannerUnitID,
+                requestsAds: model.ads.canRequestAds
+            )
                 .frame(maxWidth: .infinity)
                 .background(.bar)
                 .accessibilityLabel(Text("advertisement"))
+                .accessibilityIdentifier("shell.ad.slot")
         }
     }
 }

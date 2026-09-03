@@ -59,7 +59,8 @@ struct OnboardingView: View {
             .frame(maxWidth: .infinity)
         }
         .sheet(item: $legalDocument) { document in
-            NavigationStack { LegalView(document: document) }
+            LegalView(document: document)
+                .ignoresSafeArea()
         }
     }
 

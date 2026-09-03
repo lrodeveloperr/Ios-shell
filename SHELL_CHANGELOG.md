@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Sized adaptive banners from the SDK response and moved their safe-area reservation inside each destination, preventing the banner from clipping the native tab bar.
+- Replaced duplicated placeholder legal bodies with one in-app-browser path to the configured published documents.
+- Added release blockers for unchanged generic paywall copy and made the paywall a modal from Settings so it cannot show redundant Back and Done controls.
+- Added the ad-enabled shell target to hosted compilation checks.
 - Passed the shell model explicitly into Settings and re-injected shell environment values at every root sheet boundary, preventing missing-environment crashes.
 - Required native `Label` tab items, documented why custom `Canvas`/`Shape` content disappears from iPhone tab bars, and added focused Settings and tab-icon UI regressions.
 

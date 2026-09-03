@@ -34,7 +34,9 @@ final class ShellModel {
         self.migrationManager = migrationManager
     }
 
-    var shouldRenderAd: Bool { access.shouldShowAd && ads.canRequestAds }
+    /// Reserve the correctly sized slot while consent resolves so the product
+    /// canvas and native navigation do not jump when the banner arrives.
+    var shouldRenderAd: Bool { access.shouldShowAd }
 
     func start() async {
         do { try migrationManager.migrateIfNeeded(using: ShellConfiguration.migrations) }

@@ -7,8 +7,8 @@ enum ShellConfiguration {
 
     static let legal = LegalConfiguration(
         version: "1",
-        privacyURL: URL(string: "https://example.com/privacy")!,
-        termsURL: URL(string: "https://example.com/terms")!
+        privacyURL: URL(string: "https://example.com/#replace-with-privacy-policy")!,
+        termsURL: URL(string: "https://example.com/#replace-with-terms-of-use")!
     )
 
     static let onboarding: OnboardingProfile = .legalOnly

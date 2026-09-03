@@ -39,6 +39,9 @@ for seam in 'Transaction.updates' 'Transaction.currentEntitlements' 'AppStore.sy
   require_text Shell/Services/PurchaseService.swift "$seam"
 done
 require_text Shell/Services/AdConsentService.swift 'ConsentForm.loadAndPresentIfRequired'
+require_text Shell/App/ShellRootView.swift '.safeAreaInset(edge: .bottom, spacing: 0) { adBanner }'
+require_text Shell/Services/AdaptiveAdBanner.swift '.frame(height: adSize.size.height)'
+reject_text Shell/Features/SettingsView.swift 'NavigationLink { PaywallView() }'
 require_text Shell/Features/OnboardingView.swift 'Toggle(isOn: $accepted)'
 require_text Shell/Services/LegalConsentStore.swift 'acceptedLegalVersion'
 require_text Shell/Services/UsageLedger.swift 'KeychainUsageStore'
@@ -96,6 +99,10 @@ if [[ "$mode" == "--release" || "$mode" == "--release-ads" ]]; then
   reject_text project.yml 'PRODUCT_NAME: Shell'
   reject_text Shell/Resources/en.lproj/Localizable.strings 'REPLACE_WITH_REVIEWED_'
   reject_text Shell/Resources/es.lproj/Localizable.strings 'REPLACE_WITH_REVIEWED_'
+  reject_text Shell/Resources/en.lproj/Localizable.strings 'Make the useful thing unlimited.'
+  reject_text Shell/Resources/en.lproj/Localizable.strings 'Unlimited core actions'
+  reject_text Shell/Resources/es.lproj/Localizable.strings 'Usa la función sin límites.'
+  reject_text Shell/Resources/es.lproj/Localizable.strings 'Acciones principales ilimitadas'
   reject_text Shell/App/ShellApp.swift 'PlaceholderFeatureCanvasProvider()'
   grep -Fq 'privacyURL: URL(string: "https://' Shell/App/ShellConfiguration.swift || fail "Privacy URL must use HTTPS"
   grep -Fq 'termsURL: URL(string: "https://' Shell/App/ShellConfiguration.swift || fail "Terms URL must use HTTPS"

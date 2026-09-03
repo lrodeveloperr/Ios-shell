@@ -94,6 +94,15 @@ final class ShellTests: XCTestCase {
         XCTAssertEqual(ShellContract.currentVersion.split(separator: ".").count, 3)
     }
 
+    func testLegalDestinationsUseDistinctSecureURLs() {
+        let urls = [ShellConfiguration.legal.privacyURL, ShellConfiguration.legal.termsURL]
+        XCTAssertEqual(Set(urls).count, urls.count)
+        for url in urls {
+            XCTAssertEqual(url.scheme, "https")
+            XCTAssertNotNil(url.host)
+        }
+    }
+
     private func resolve(_ mode: MonetizationMode, entitled: Bool, checking: Bool, free: Bool) -> AccessDecision {
         AccessController.resolveDecision(mode: mode, isEntitled: entitled, isChecking: checking, hasFreeActionRemaining: free)
     }

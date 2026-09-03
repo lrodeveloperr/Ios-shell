@@ -6,12 +6,22 @@ import SwiftUI
 struct PaywallView: View {
     @Environment(ShellModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    @State private var legalDocument: LegalDocument?
+    let showsDoneButton: Bool
+
+    init(showsDoneButton: Bool = false) {
+        self.showsDoneButton = showsDoneButton
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("paywall.title").font(.largeTitle.bold())
-                Text("paywall.message").foregroundStyle(.secondary)
+                Text("paywall.title")
+                    .font(.largeTitle.bold())
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("paywall.message")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
                 ForEach(["paywall.benefit.unlimited", "paywall.benefit.noAds", "paywall.benefit.support"], id: \.self) { benefit in
                     Label(LocalizedStringKey(benefit), systemImage: "checkmark.circle.fill")
                         .symbolRenderingMode(.hierarchical)
@@ -49,9 +59,9 @@ struct PaywallView: View {
                     .accessibilityIdentifier("shell.paywall.restore")
 
                 HStack {
-                    Link("privacy", destination: ShellConfiguration.legal.privacyURL)
+                    Button("privacy") { legalDocument = .privacy }
                     Spacer()
-                    Link("terms", destination: ShellConfiguration.legal.termsURL)
+                    Button("terms") { legalDocument = .terms }
                 }
                 .font(.footnote)
             }
@@ -60,8 +70,17 @@ struct PaywallView: View {
             .frame(maxWidth: .infinity)
         }
         .navigationTitle("upgrade")
+        .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("shell.paywall")
-        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("done") { dismiss() } } }
+        .toolbar {
+            if showsDoneButton {
+                ToolbarItem(placement: .confirmationAction) { Button("done") { dismiss() } }
+            }
+        }
+        .sheet(item: $legalDocument) { document in
+            LegalView(document: document)
+                .ignoresSafeArea()
+        }
         .onChange(of: model.access.purchases.isEntitled) { _, entitled in
             if entitled { dismiss() }
         }
