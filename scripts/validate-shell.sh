@@ -12,6 +12,8 @@ require_file() { [[ -f "$1" ]] || fail "Missing $1"; }
 require_text() { grep -Fq "$2" "$1" || fail "$1 must contain: $2"; }
 reject_text() { ! grep -Fq "$2" "$1" || fail "$1 contains forbidden text: $2"; }
 
+[[ -x scripts/validate-shell.sh ]] || fail "scripts/validate-shell.sh must retain its executable bit"
+
 for path in project.yml AGENTS.md docs/APPLE_STORE_COMPLIANCE.md docs/DERIVED_APP_RELEASE_WIRING.md docs/UI_REGRESSION_MATRIX.md SHELL_CHANGELOG.md MIGRATIONS.md Shell/App/ShellConfiguration.swift Shell/App/ShellContract.swift Shell/App/FeatureCanvasBoundary.swift Shell/Services/AppLocalization.swift Shell/Services/PurchaseService.swift Shell/Services/AccessController.swift Shell/Services/NativeBackup.swift Shell/Services/AdConsentService.swift Shell/Resources/Info.plist Shell/Resources/Info-Ads.plist Shell/Resources/PrivacyInfo.xcprivacy Shell/Resources/LocalizationBaseline.swift Shell/Resources/gooduse-common-localization-v1.json Shell/Resources/Assets.xcassets/AppIcon.appiconset/ShellIcon-1024.png scripts/check-commerce-branding.sh; do
   require_file "$path"
 done
