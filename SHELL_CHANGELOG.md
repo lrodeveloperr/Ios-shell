@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Made Settings subscription rows lifecycle-aware: inactive/expired/revoked customers no longer see a success badge or Manage Subscription, checking is neutral, active/recoverable states keep management, and legal button typography can no longer inherit the app tint. Added upstream zero-placeholder, live-localization and Settings-state regression gates.
 - Hardened auto-renewable subscription lifecycle handling: verified renewal states, Billing Grace Period, billing retry, cancellation-through-expiry, foreground/expiration refresh, cached effective expiry, and in-app subscription management.
 - Prevented unverified subscription-status responses from being misclassified as authoritative expiry, and made paywalls use StoreKit's localized product name as well as price and period.
 - Separated screenshot-fixture uploads from production-logic uploads so one workflow input cannot select the wrong entitlement profile.

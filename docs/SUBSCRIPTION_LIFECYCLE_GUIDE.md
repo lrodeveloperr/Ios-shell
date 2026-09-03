@@ -14,6 +14,19 @@ Use this guide for every derived app that sells an auto-renewable subscription. 
 | `revoked` or refunded | No immediately | Clear cached entitlement and apply the lapsed policy |
 | Offline verified snapshot | Yes only until its effective verified expiration | Never extend access because the device is offline |
 
+Settings must be derived from that verified condition, not merely from the fact that the app sells a subscription:
+
+| Condition | Status row | Icon | Manage Subscription |
+|---|---|---|---|
+| Checking | Localized checking copy | Neutral hourglass | Hidden |
+| No purchase / expired / revoked | Hidden; show the app's upgrade entry point when appropriate | None | Hidden |
+| Subscribed, auto-renew on or off | Renewal or paid-through date | Success seal | Shown |
+| Billing Grace Period | Grace-period date and payment warning | Warning | Shown |
+| Billing retry after grace | Payment-recovery message | Warning | Shown |
+| Valid offline snapshot | Verified-until date | Neutral verified seal | Shown |
+
+Never show a success checkmark beside an inactive state, and never offer Apple's management sheet to a customer for whom the app has no current or recoverable subscription context. That combination looks like placeholder UI and can produce a blank or irrelevant system sheet in testing.
+
 Use verified `Product.SubscriptionInfo.Status` and verified transaction and renewal information. A transaction's original `expirationDate` alone is insufficient because Billing Grace Period has its own effective expiration.
 
 Refresh on launch, verified `Transaction.updates`, purchase, restore, foreground activation, and a scheduled task at the effective expiration. A UI that was opened while paid must re-read entitlement when its mutation commits.
@@ -33,6 +46,7 @@ Refresh on launch, verified `Transaction.updates`, purchase, restore, foreground
 | Expiry deletes or silently archives records | Quota enforcement mutates customer data | Never delete or change lifecycle automatically; use visible read-only state and allow data-reducing actions |
 | A valid backup is rejected only because it contains paid-era data | Restore equates possession with entitlement | Restore valid data atomically, discard entitlement, then apply the current locked/read-only policy where the product can represent it safely |
 | Delete, add, then Undo creates an extra free record | Undo bypasses the same active-record policy | Reconcile access after Undo; restored excess data may return read-only but never as an extra free managed slot |
+| Every Settings user sees Manage Subscription | UI is gated by product configuration instead of verified customer state | Hide it for absent, expired and revoked states; expose it for active, grace, billing-retry and valid offline-cached states |
 
 For a record-count freemium product, define what counts toward the quota and what happens after lapse before implementation. A fair default is:
 

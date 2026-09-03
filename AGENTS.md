@@ -126,7 +126,8 @@ Usage-cap, one-time-unlock, ad-free subscription and free profiles do not show t
 - Resolve entitlement again when a domain mutation commits. Never pass a paid Boolean captured when a form, sheet, deep link, or background task began.
 - For feature-specific free limits, the product repository—not a button—must enforce add, duplicate, edit, status, service, reminder, import, restore, migration, Undo, deep-link, and background mutation paths.
 - A lapse must not delete, silently archive, or conceal customer data. Document which records remain manageable, keep excess data viewable/exportable where feasible, and permit limit-reducing actions without payment.
-- Billing-retry UI routes to Apple subscription management instead of offering a duplicate purchase. Subscription apps expose current status and a Manage Subscription action in Settings.
+- Billing-retry UI routes to Apple subscription management instead of offering a duplicate purchase. Subscription apps expose truthful current status and Apple's management surface only when the verified customer state makes that action relevant.
+- Do not render a fake inactive subscription card. Settings shows a neutral checking row while StoreKit resolves; hides subscription status and Manage Subscription when the verified state is absent, expired or revoked; and offers management only for active, grace, billing-retry or still-valid offline-cached states. Icons must reflect the state instead of showing a success seal for every condition.
 - Subscription purchase UI uses StoreKit's localized display name, full price, currency, and period. Never substitute a hard-coded product name or price for App Store metadata.
 - Keychain usage records are durable, bounded and deduplicated.
 - Shell Lab and entitlement overrides must remain inside `#if DEBUG`.
@@ -164,6 +165,9 @@ All onboarding, Settings and paywall legal controls must resolve from `ShellConf
 - Use SF Symbols consistently and localize labels/content descriptions.
 - Verify Dynamic Type, VoiceOver, RTL, compact iPhone height and iPad width.
 - Do not hard-code user-visible English in new Views.
+- Changing the selected language must update the Settings navigation title and visible rows immediately. Use stable localization keys or an explicitly locale-resolved title; do not rely on display-value-as-key strings that can leave a cached English navigation title.
+- Button-backed Settings rows must use plain button styling with explicit primary titles and secondary subtitles so the global tint cannot recolor legal or support copy. Keep tint on icons and affordances only.
+- A derived app's Settings screen must contain zero template data. Replace or remove sample footer text, generic upgrade language, placeholder URLs, sample provider names and debug-only concepts from production presentation. A key that exists only in an unused shell catalog is not evidence that it is wired into the product.
 
 ## Release blockers
 

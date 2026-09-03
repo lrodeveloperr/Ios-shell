@@ -88,6 +88,29 @@ final class ShellTests: XCTestCase {
         XCTAssertFalse(SubscriptionAccessEvaluation.resolve(condition: .revoked, at: now).grantsAccess)
     }
 
+    func testSettingsOnlyOffersSubscriptionManagementForRelevantStoreStates() {
+        XCTAssertNil(SubscriptionSettingsPresentation.resolve(.notApplicable))
+        XCTAssertNil(SubscriptionSettingsPresentation.resolve(.expired))
+        XCTAssertNil(SubscriptionSettingsPresentation.resolve(.revoked))
+
+        let checking = SubscriptionSettingsPresentation.resolve(.checking)
+        XCTAssertEqual(checking?.showsManagement, false)
+        XCTAssertEqual(checking?.symbol, "hourglass")
+
+        let expiration = Date(timeIntervalSince1970: 2_000)
+        XCTAssertEqual(
+            SubscriptionSettingsPresentation.resolve(.subscribed(willAutoRenew: true, expirationDate: expiration))?.showsManagement,
+            true
+        )
+        XCTAssertEqual(
+            SubscriptionSettingsPresentation.resolve(.subscribed(willAutoRenew: false, expirationDate: expiration))?.showsManagement,
+            true
+        )
+        XCTAssertEqual(SubscriptionSettingsPresentation.resolve(.gracePeriod(expirationDate: expiration))?.showsManagement, true)
+        XCTAssertEqual(SubscriptionSettingsPresentation.resolve(.billingRetry)?.showsManagement, true)
+        XCTAssertEqual(SubscriptionSettingsPresentation.resolve(.offlineCached(expirationDate: expiration))?.showsManagement, true)
+    }
+
     func testProductIdentifiersAreSelectedByProfile() {
         XCTAssertEqual(configuration(.free).productIDs, [])
         XCTAssertEqual(configuration(.ads).productIDs, [])

@@ -23,6 +23,10 @@ Use this checklist for every app created from the shell. It records the failure 
 | App Store text contradicts the binary | Review notes, screenshots or product metadata described an older business model | Storefront and subscription metadata are a required parity gate | Review notes accurately describe ads, consent, limits, subscription and test path |
 | Legal URLs load but describe an older app | HTTP success was mistaken for content validation | Read each published page and compare SDKs, data flow, monetization, restore, deletion and territory claims with the final source/archive | Record the page title, effective date and parity result for every configured legal destination |
 | Screenshot entitlement ships as a production test | One upload workflow switched between fixture/free and production configurations | Keep screenshot and production-logic uploads in separate manual workflows with distinct confirmation phrases | Workflow source and archive compilation conditions prove which profile was uploaded |
+| Inactive customer sees a success tick or blank Apple management sheet | Settings rendered subscription rows from monetization configuration alone instead of verified lifecycle state | A shared state resolver hides absent/expired/revoked rows, uses neutral checking UI and exposes management only for relevant verified states | Exercise the full Settings subscription matrix with StoreKit test accounts |
+| Settings navigation title stays in English after a language change | Display-value literals and navigation-title caching bypassed explicit locale resolution | Use stable keys or an explicitly locale-resolved title and verify live switching while Settings remains presented | Switch every enabled locale in-place and inspect the title and visible rows |
+| Legal-row copy is tinted unlike neighboring Settings rows | A `Button` inherited the app tint across its complete label | Use plain button styling plus explicit primary title and secondary subtitle colors; reserve tint for the icon | Compare NavigationLink, Button and Link rows in light/dark/high-contrast modes |
+| Placeholder Settings content reaches a derived app | Generic shell footer, purchase copy or provider data was treated as production content | Derived Settings has a zero-placeholder gate and validators reject known template phrases | Review every visible state, including empty, loading, error, inactive and DEBUG exclusion |
 
 ## Code and archive
 
@@ -31,7 +35,7 @@ Use this checklist for every app created from the shell. It records the failure 
 - [ ] An operation opened while entitled re-checks access when it commits; expiry cannot be bypassed by leaving a form open.
 - [ ] Delete/Undo and lifecycle changes cannot manufacture another free managed slot.
 - [ ] Cancellation, paid expiration, Billing Grace Period, billing retry, recovery, refund/revocation and offline expiry each have an explicit tested result.
-- [ ] Subscription Settings shows current status and opens Apple's management surface; billing retry does not offer a duplicate purchase.
+- [ ] Subscription Settings follows the complete state matrix: checking is neutral; absent/expired/revoked shows Upgrade only; active/cancelled-paid-through/grace/offline-valid shows truthful status; billing retry routes to recovery; Manage is never shown without a relevant state.
 - [ ] StoreKit product IDs and types exactly match App Store Connect. Customer price and billing period come only from `Product`.
 - [ ] Pending, cancelled, unverified, expired, refunded and revoked transactions do not unlock access.
 - [ ] A failed product request leaves a localized retry action rather than a permanent spinner.
@@ -57,6 +61,9 @@ Use this checklist for every app created from the shell. It records the failure 
 - [ ] Terminology is natural for the target trade and region, not merely literal. Spanish variants, gas names, cylinder/bottle terminology and measurement conventions receive regional review.
 - [ ] Text expansion, compact height, Dynamic Type, VoiceOver and RTL behavior pass on real layouts.
 - [ ] Legal-document language is disclosed when a matching localized policy is unavailable.
+- [ ] Changing language while Settings is open updates the navigation title and every visible row without stray English or stale cached text.
+- [ ] Button-backed rows match neighboring navigation rows: primary title, secondary subtitle and tint-only icon.
+- [ ] Every production Settings state has zero template/sample/footer placeholder content, including product-unavailable and inactive-subscription states.
 
 ## Store and policy parity
 

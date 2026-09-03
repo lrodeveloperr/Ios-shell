@@ -11,9 +11,7 @@ struct SettingsView: View {
 
     var body: some View {
         List {
-            if model.access.configuration.includesPurchase,
-               !model.access.isEntitled,
-               model.access.purchases.subscriptionCondition != .billingRetry {
+            if model.access.configuration.includesPurchase, shouldShowUpgrade {
                 Section {
                     Button { showPaywall = true } label: {
                         SettingsLabel("upgrade", subtitle: "upgrade.subtitle", symbol: "sparkles")
@@ -22,11 +20,19 @@ struct SettingsView: View {
                 }
             }
 
-            if model.access.configuration.includesSubscription {
+            if model.access.configuration.includesSubscription, let subscriptionPresentation {
                 Section {
-                    SettingsLabel("subscription.status", verbatimSubtitle: subscriptionStatus, symbol: "checkmark.seal")
-                    Button { showingManageSubscriptions = true } label: {
-                        SettingsLabel("subscription.manage", subtitle: "subscription.manage.subtitle", symbol: "person.crop.circle.badge.checkmark")
+                    SettingsLabel(
+                        "subscription.status",
+                        verbatimSubtitle: subscriptionStatus,
+                        symbol: subscriptionPresentation.symbol
+                    )
+                    if subscriptionPresentation.showsManagement {
+                        Button { showingManageSubscriptions = true } label: {
+                            SettingsLabel("subscription.manage", subtitle: "subscription.manage.subtitle", symbol: "person.crop.circle.badge.checkmark")
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("shell.settings.subscription.manage")
                     }
                 }
             }
@@ -66,9 +72,11 @@ struct SettingsView: View {
                 Button { legalDocument = .privacy } label: {
                     SettingsLabel("privacyPolicy", symbol: "hand.raised")
                 }
+                .buttonStyle(.plain)
                 Button { legalDocument = .terms } label: {
                     SettingsLabel("termsOfUse", symbol: "doc.text")
                 }
+                .buttonStyle(.plain)
             }
 
 #if DEBUG
@@ -106,6 +114,20 @@ struct SettingsView: View {
         ShellConfiguration.supportedLanguages.first { $0.id == model.language.selection }?.displayName ?? "Follow system"
     }
 
+    private var shouldShowUpgrade: Bool {
+        guard !model.access.isEntitled else { return false }
+        switch model.access.purchases.subscriptionCondition {
+        case .checking, .billingRetry, .subscribed, .gracePeriod, .offlineCached:
+            return false
+        case .notApplicable, .expired, .revoked:
+            return true
+        }
+    }
+
+    private var subscriptionPresentation: SubscriptionSettingsPresentation? {
+        SubscriptionSettingsPresentation.resolve(model.access.purchases.subscriptionCondition)
+    }
+
     private var subscriptionStatus: String {
         switch model.access.purchases.subscriptionCondition {
         case .notApplicable, .expired, .revoked:
@@ -128,6 +150,26 @@ struct SettingsView: View {
     }
 }
 
+struct SubscriptionSettingsPresentation: Equatable {
+    let showsManagement: Bool
+    let symbol: String
+
+    static func resolve(_ condition: SubscriptionCondition) -> Self? {
+        switch condition {
+        case .notApplicable, .expired, .revoked:
+            return nil
+        case .checking:
+            return Self(showsManagement: false, symbol: "hourglass")
+        case .subscribed:
+            return Self(showsManagement: true, symbol: "checkmark.seal.fill")
+        case .gracePeriod, .billingRetry:
+            return Self(showsManagement: true, symbol: "exclamationmark.triangle.fill")
+        case .offlineCached:
+            return Self(showsManagement: true, symbol: "checkmark.seal")
+        }
+    }
+}
+
 private struct SettingsLabel: View {
     let titleKey: LocalizedStringKey
     let subtitle: String?
@@ -144,9 +186,9 @@ private struct SettingsLabel: View {
     var body: some View {
         Label {
             VStack(alignment: .leading, spacing: 2) {
-                Text(titleKey).foregroundStyle(.primary)
-                if let subtitle { Text(LocalizedStringKey(subtitle)).font(.caption).foregroundStyle(.secondary) }
-                if let verbatimSubtitle { Text(verbatimSubtitle).font(.caption).foregroundStyle(.secondary) }
+                Text(titleKey).foregroundStyle(Color.primary)
+                if let subtitle { Text(LocalizedStringKey(subtitle)).font(.caption).foregroundStyle(Color.secondary) }
+                if let verbatimSubtitle { Text(verbatimSubtitle).font(.caption).foregroundStyle(Color.secondary) }
             }
         } icon: {
             Image(systemName: symbol).foregroundStyle(.tint)
