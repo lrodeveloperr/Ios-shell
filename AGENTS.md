@@ -146,6 +146,7 @@ All onboarding, Settings and paywall legal controls must resolve from `ShellConf
 - Parse and format numbers, money, dates and quantities with the selected app locale, including comma-decimal input. Use plural rules or reviewed singular/plural keys; never concatenate English grammar.
 - Search must recognize localized displayed terminology as well as stored canonical values. Notification copy and accessibility labels must use the selected locale.
 - Review region-specific product terminology, text expansion and bidirectional layout before enabling a locale. An RTL language requires an actual RTL pass, not only translated strings.
+- Translate domain states by their intended meaning rather than word-for-word labels; validate grammatical agreement across benefit lists and make localized purchase buttons name the concrete entitlement instead of an abstract promise.
 - Published policies and store metadata must be reviewed for each enabled locale; otherwise clearly disclose the document language and do not claim fully localized legal coverage.
 - Preserve the system-language option and immediate SwiftUI locale update.
 - Use SF Symbols consistently and localize labels/content descriptions.

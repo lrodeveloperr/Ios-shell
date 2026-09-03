@@ -16,6 +16,8 @@ Do not expose a locale until every item is checked for the derived app. Key pari
 
 - [ ] A reviewer familiar with the target region approves product terminology, tone, formality and action labels in context.
 - [ ] Units, cylinder/gas terminology, ownership/rental language and safety wording match normal regional trade usage.
+- [ ] Domain states are translated by meaning in context, not by copying the source adjective. For example, “low” may describe remaining gas rather than physical height; validate the natural local trade expression.
+- [ ] Benefit lists have correct grammatical agreement, and purchase buttons name the concrete entitlement or action instead of a vague abstraction such as “unlock control.”
 - [ ] Destructive confirmations use an understandable local word and do not require typing an unexplained English token.
 - [ ] Text avoids idioms, stereotypes, flags as language symbols and region-inappropriate examples.
 - [ ] Support, privacy, terms, deletion and safety destinations are live and their available language is represented honestly.
