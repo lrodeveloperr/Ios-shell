@@ -140,6 +140,9 @@ final class ShellTests: XCTestCase {
         XCTAssertEqual(language.selection, "system")
         XCTAssertEqual(LanguageController.closestSupported(to: "es-MX"), "es")
         XCTAssertEqual(LanguageController.closestSupported(to: "fr-CA"), "en")
+        XCTAssertTrue(SupportedLocaleResolver.isRightToLeft("ar-SA"))
+        XCTAssertTrue(SupportedLocaleResolver.isRightToLeft("ur_PK"))
+        XCTAssertFalse(SupportedLocaleResolver.isRightToLeft("en-US"))
     }
 
     func testSafeTemplateDefaultsAndSharedLocalizationContract() {

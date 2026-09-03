@@ -38,11 +38,13 @@ struct ShellRootView: View {
         .environment(model)
         .environment(model.language)
         .environment(\.locale, model.language.locale)
+        .environment(\.layoutDirection, model.language.layoutDirection)
         .sheet(isPresented: $model.settingsPresented) {
             NavigationStack { SettingsView(model: model) }
                 .environment(model)
                 .environment(model.language)
                 .environment(\.locale, model.language.locale)
+                .environment(\.layoutDirection, model.language.layoutDirection)
         }
 #if DEBUG
         .sheet(isPresented: $model.labPresented) {
@@ -50,6 +52,7 @@ struct ShellRootView: View {
                 .environment(model)
                 .environment(model.language)
                 .environment(\.locale, model.language.locale)
+                .environment(\.layoutDirection, model.language.layoutDirection)
         }
 #endif
         .sheet(isPresented: $model.paywallPresented) {
@@ -57,6 +60,7 @@ struct ShellRootView: View {
                 .environment(model)
                 .environment(model.language)
                 .environment(\.locale, model.language.locale)
+                .environment(\.layoutDirection, model.language.layoutDirection)
         }
         .task {
             await model.start()

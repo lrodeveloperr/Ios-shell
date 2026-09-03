@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Made in-app locale resolution region/script-aware, mirrored the complete shell when an RTL language is selected independently of the device language, and strengthened the localization gate so machine-generated drafts, English exonyms and blanket cultural-review claims cannot qualify a locale for release.
 - Made Settings subscription rows lifecycle-aware: inactive/expired/revoked customers no longer see a success badge or Manage Subscription, checking is neutral, active/recoverable states keep management, and legal button typography can no longer inherit the app tint. Added upstream zero-placeholder, live-localization and Settings-state regression gates.
 - Hardened auto-renewable subscription lifecycle handling: verified renewal states, Billing Grace Period, billing retry, cancellation-through-expiry, foreground/expiration refresh, cached effective expiry, and in-app subscription management.
 - Prevented unverified subscription-status responses from being misclassified as authoritative expiry, and made paywalls use StoreKit's localized product name as well as price and period.

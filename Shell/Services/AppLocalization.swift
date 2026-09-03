@@ -15,15 +15,6 @@ enum AppLocalization {
     }
 
     private static func resourceLanguage(for locale: Locale) -> String {
-        let normalized = locale.identifier.replacingOccurrences(of: "_", with: "-").lowercased()
-        let explicit = ShellConfiguration.supportedLanguages.filter { $0.id != "system" }
-        if let exact = explicit.first(where: {
-            normalized == $0.id.lowercased() || normalized.hasPrefix($0.id.lowercased() + "-")
-        }) { return exact.id }
-        let base = normalized.split(separator: "-").first.map(String.init) ?? "en"
-        if let languageMatch = explicit.first(where: {
-            $0.id.lowercased() == base || $0.id.lowercased().hasPrefix(base + "-")
-        }) { return languageMatch.id }
-        return explicit.first(where: { $0.id == "en" })?.id ?? explicit.first?.id ?? "en"
+        SupportedLocaleResolver.closestSupported(to: locale.identifier)
     }
 }
