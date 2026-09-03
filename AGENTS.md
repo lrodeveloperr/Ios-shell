@@ -39,6 +39,7 @@ Read this file before changing code.
 | Shell version and migrations | `Shell/App/ShellContract.swift`, `SHELL_CHANGELOG.md`, `MIGRATIONS.md` |
 | Optional native backup seam | `Shell/Services/NativeBackup.swift` |
 | Shared 31-locale terms | `Shell/Resources/gooduse-common-localization-v1.json` |
+| Localization release checklist | `docs/LOCALIZATION_RELEASE_CHECKLIST.md` |
 
 ## What a derived app may replace
 
@@ -135,7 +136,13 @@ All onboarding, Settings and paywall legal controls must resolve from `ShellConf
 ## Localization and accessibility
 
 - Keep all shell and product text in localization resources.
-- Add every supported locale consistently; do not leave fallback English accidentally visible.
+- `supportedLanguages` is a release claim. Add a locale there only after the complete product, notification, accessibility, commerce and validation-error catalog passes `docs/LOCALIZATION_RELEASE_CHECKLIST.md`; shared shell terms do not qualify a language.
+- Every non-system `supportedLanguages` identifier must have a matching `.lproj` catalog with exact English key parity. Run `python3 scripts/validate-localizations.py`; missing catalogs and key drift block release.
+- Keep persisted enum/raw values stable, but map them to localization keys for presentation. Never show `rawValue` as user-facing text.
+- Parse and format numbers, money, dates and quantities with the selected app locale, including comma-decimal input. Use plural rules or reviewed singular/plural keys; never concatenate English grammar.
+- Search must recognize localized displayed terminology as well as stored canonical values. Notification copy and accessibility labels must use the selected locale.
+- Review region-specific product terminology, text expansion and bidirectional layout before enabling a locale. An RTL language requires an actual RTL pass, not only translated strings.
+- Published policies and store metadata must be reviewed for each enabled locale; otherwise clearly disclose the document language and do not claim fully localized legal coverage.
 - Preserve the system-language option and immediate SwiftUI locale update.
 - Use SF Symbols consistently and localize labels/content descriptions.
 - Verify Dynamic Type, VoiceOver, RTL, compact iPhone height and iPad width.

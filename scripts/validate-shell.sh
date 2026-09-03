@@ -21,6 +21,7 @@ if rg -n 'import (Flutter|React|ReactNative)|FlutterViewController|RCTRootView' 
 fi
 
 bash scripts/check-commerce-branding.sh
+python3 scripts/validate-localizations.py
 
 # The default product is physically ad-free. Advertising symbols are compiled
 # only for ShellAds, which alone links Google Mobile Ads.
