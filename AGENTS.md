@@ -166,7 +166,7 @@ When execution is authorized, the release checks are:
 
 TestFlight requires an explicit manual workflow dispatch and the exact confirmation text. Its build number must be unique and monotonically safe relative to prior uploads; a UTC timestamp plus workflow run number is the shell default. Never upload or trigger a hosted run unless the user explicitly authorizes it.
 
-The Welding Wallet bridge workflow may create a `production_test_ads` TestFlight build that exercises the real free limit and StoreKit subscription while using Google's official demo app/banner IDs. That build is for internal testing only and must never be selected for App Store review or release. A storefront binary requires publisher-owned AdMob IDs and the full advertising release gate.
+The Welding Wallet bridge is product-specific and must follow the app repository’s current business model. Its production-logic option is `subscription`: three active cylinders remain free, a verified monthly subscription unlocks unlimited active cylinders, and the archive gate rejects advertising frameworks and metadata. Do not preserve an obsolete ad-enabled bridge after the derived app removes ads.
 
 
 ## Mandatory commerce-surface rule
