@@ -20,6 +20,7 @@ env:
   APPLE_TEAM_ID: 49SQ3XQ68Q
   APP_NAME: Welding Gas Wallet
   APP_SKU: welding-gas-wallet
+  PROVISIONING_PROFILE_NAME: Welding Gas Wallet App Store CI
   SCHEME: WeldingGasWallet
   ARCHIVE_PATH: ${{ github.workspace }}/build/WeldingGasWallet.xcarchive
   EXPORT_PATH: ${{ github.workspace }}/build/export
@@ -97,6 +98,8 @@ jobs:
             echo 'Bundle ID lookup was ambiguous.' >&2
             exit 1
           fi
+          bundle_resource_id="$(ruby -rjson -e 'd=JSON.parse(File.read(ARGV[0])).fetch("data"); puts(d.is_a?(Array) ? d.fetch(0).fetch("id") : d.fetch("id"))' "$bundle_json")"
+          echo "BUNDLE_RESOURCE_ID=$bundle_resource_id" >> "$GITHUB_ENV"
           app_json="$RUNNER_TEMP/app.json"
           curl --fail-with-body --silent --show-error --get -H "$auth" --data-urlencode "filter[bundleId]=$IOS_BUNDLE_ID" --data-urlencode 'limit=2' 'https://api.appstoreconnect.apple.com/v1/apps' -o "$app_json"
           app_count="$(ruby -rjson -e 'puts JSON.parse(File.read(ARGV[0])).fetch("data").length' "$app_json")"
@@ -127,7 +130,55 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain_path"
           security list-keychains -d user -s "$keychain_path" $(security list-keychains -d user | tr -d '"')
           security find-identity -v -p codesigning "$keychain_path" | grep 'Apple Distribution'
+          cert_pem="$RUNNER_TEMP/distribution.pem"
+          openssl pkcs12 -in "$cert_path" -clcerts -nokeys -passin env:IOS_DISTRIBUTION_CERTIFICATE_PASSWORD -out "$cert_pem"
+          cert_serial="$(openssl x509 -in "$cert_pem" -noout -serial | cut -d= -f2)"
+          certificates_json="$RUNNER_TEMP/certificates.json"
+          curl --fail-with-body --silent --show-error --get \
+            -H "Authorization: Bearer $ASC_JWT" \
+            --data-urlencode 'filter[certificateType]=DISTRIBUTION' \
+            --data-urlencode 'limit=200' \
+            'https://api.appstoreconnect.apple.com/v1/certificates' \
+            -o "$certificates_json"
+          certificate_resource_id="$(CERT_SERIAL="$cert_serial" ruby -rjson -e 'target=ENV.fetch("CERT_SERIAL").sub(/\\A0+/,"").upcase; rows=JSON.parse(File.read(ARGV[0])).fetch("data").select{|x| x.fetch("attributes").fetch("serialNumber","").sub(/\\A0+/,"").upcase==target}; abort "Expected one matching Apple distribution certificate; found #{rows.length}" unless rows.length==1; puts rows.fetch(0).fetch("id")' "$certificates_json")"
+          echo "CERTIFICATE_RESOURCE_ID=$certificate_resource_id" >> "$GITHUB_ENV"
           echo "SIGNING_KEYCHAIN=$keychain_path" >> "$GITHUB_ENV"
+
+      - name: Ensure and install provisioning profile
+        run: |
+          profiles_json="$RUNNER_TEMP/profiles.json"
+          curl --fail-with-body --silent --show-error --get \
+            -H "Authorization: Bearer $ASC_JWT" \
+            --data-urlencode "filter[name]=$PROVISIONING_PROFILE_NAME" \
+            --data-urlencode 'filter[profileState]=ACTIVE' \
+            --data-urlencode 'limit=2' \
+            'https://api.appstoreconnect.apple.com/v1/profiles' \
+            -o "$profiles_json"
+          profile_count="$(ruby -rjson -e 'puts JSON.parse(File.read(ARGV[0])).fetch("data").length' "$profiles_json")"
+          if [[ "$profile_count" == "0" ]]; then
+            PROFILE_NAME="$PROVISIONING_PROFILE_NAME" BUNDLE_ID="$BUNDLE_RESOURCE_ID" CERTIFICATE_ID="$CERTIFICATE_RESOURCE_ID" ruby -rjson -e 'puts JSON.generate(data:{type:"profiles",attributes:{name:ENV.fetch("PROFILE_NAME"),profileType:"IOS_APP_STORE"},relationships:{bundleId:{data:{type:"bundleIds",id:ENV.fetch("BUNDLE_ID")}},certificates:{data:[{type:"certificates",id:ENV.fetch("CERTIFICATE_ID")}]}}})' > "$RUNNER_TEMP/create-profile.json"
+            curl --fail-with-body --silent --show-error -X POST \
+              -H "Authorization: Bearer $ASC_JWT" \
+              -H 'Content-Type: application/json' \
+              -d @"$RUNNER_TEMP/create-profile.json" \
+              'https://api.appstoreconnect.apple.com/v1/profiles' \
+              -o "$profiles_json"
+          elif [[ "$profile_count" != "1" ]]; then
+            echo "Expected zero or one active profile named $PROVISIONING_PROFILE_NAME; found $profile_count." >&2
+            exit 1
+          fi
+          profile_path="$RUNNER_TEMP/welding-wallet.mobileprovision"
+          ruby -rjson -rbase64 -e 'd=JSON.parse(File.read(ARGV[0])).fetch("data"); row=d.is_a?(Array) ? d.fetch(0) : d; print Base64.decode64(row.fetch("attributes").fetch("profileContent"))' "$profiles_json" > "$profile_path"
+          security cms -D -i "$profile_path" > "$RUNNER_TEMP/profile.plist"
+          profile_uuid="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$RUNNER_TEMP/profile.plist")"
+          profile_name="$(/usr/libexec/PlistBuddy -c 'Print :Name' "$RUNNER_TEMP/profile.plist")"
+          app_identifier="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$RUNNER_TEMP/profile.plist")"
+          [[ "$profile_name" == "$PROVISIONING_PROFILE_NAME" ]]
+          [[ "$app_identifier" == "$APPLE_TEAM_ID.$IOS_BUNDLE_ID" ]]
+          profile_dir="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$profile_dir"
+          cp "$profile_path" "$profile_dir/$profile_uuid.mobileprovision"
+          chmod 600 "$profile_dir/$profile_uuid.mobileprovision"
 
       - name: Archive screenshot edition
         env:
@@ -136,7 +187,7 @@ jobs:
         run: |
           rm -rf "$ARCHIVE_PATH" "$EXPORT_PATH"
           mkdir -p "$(dirname "$ARCHIVE_PATH")" "$EXPORT_PATH"
-          xcodebuild -project WeldingGasWallet.xcodeproj -scheme "$SCHEME" -configuration Release -destination 'generic/platform=iOS' -archivePath "$ARCHIVE_PATH" -allowProvisioningUpdates -authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" PRODUCT_BUNDLE_IDENTIFIER="$IOS_BUNDLE_ID" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" SWIFT_ACTIVE_COMPILATION_CONDITIONS=SCREENSHOT_BUILD clean archive
+          xcodebuild -project WeldingGasWallet.xcodeproj -scheme "$SCHEME" -configuration Release -destination 'generic/platform=iOS' -archivePath "$ARCHIVE_PATH" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" PRODUCT_BUNDLE_IDENTIFIER="$IOS_BUNDLE_ID" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" SWIFT_ACTIVE_COMPILATION_CONDITIONS=SCREENSHOT_BUILD clean archive
           app="$(find "$ARCHIVE_PATH/Products/Applications" -maxdepth 1 -type d -name '*.app' -print -quit)"
           test -n "$app"
           while IFS= read -r -d '' framework; do codesign --force --sign - --timestamp=none "$framework"; done < <(find "$app/Frameworks" -depth -type d -name '*.framework' -print0 2>/dev/null || true)
@@ -146,7 +197,18 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
-          xcodebuild -exportArchive -archivePath "$ARCHIVE_PATH" -exportPath "$EXPORT_PATH" -exportOptionsPlist ExportOptions.plist -allowProvisioningUpdates -authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          export_options="$RUNNER_TEMP/ExportOptions.plist"
+          plutil -create xml1 "$export_options"
+          /usr/libexec/PlistBuddy -c 'Add :method string app-store-connect' "$export_options"
+          /usr/libexec/PlistBuddy -c 'Add :destination string export' "$export_options"
+          /usr/libexec/PlistBuddy -c 'Add :signingStyle string manual' "$export_options"
+          /usr/libexec/PlistBuddy -c 'Add :signingCertificate string "Apple Distribution"' "$export_options"
+          /usr/libexec/PlistBuddy -c "Add :teamID string $APPLE_TEAM_ID" "$export_options"
+          /usr/libexec/PlistBuddy -c 'Add :manageAppVersionAndBuildNumber bool false' "$export_options"
+          /usr/libexec/PlistBuddy -c 'Add :uploadSymbols bool true' "$export_options"
+          /usr/libexec/PlistBuddy -c 'Add :provisioningProfiles dict' "$export_options"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:$IOS_BUNDLE_ID string $PROVISIONING_PROFILE_NAME" "$export_options"
+          xcodebuild -exportArchive -archivePath "$ARCHIVE_PATH" -exportPath "$EXPORT_PATH" -exportOptionsPlist "$export_options"
           IPA_PATH="$(find "$EXPORT_PATH" -maxdepth 1 -type f -name '*.ipa' -print -quit)"
           test -n "$IPA_PATH"
           echo "IPA_PATH=$IPA_PATH" >> "$GITHUB_ENV"
