@@ -20,7 +20,6 @@ env:
   APPLE_TEAM_ID: 49SQ3XQ68Q
   APP_NAME: Welding Gas Wallet
   APP_SKU: welding-gas-wallet
-  PROVISIONING_PROFILE_NAME: Welding Gas Wallet App Store CI
   SCHEME: WeldingGasWallet
   PROVISIONING_PROFILE_NAME: Welding Gas Wallet App Store CI
   ARCHIVE_PATH: ${{ github.workspace }}/build/WeldingGasWallet.xcarchive
