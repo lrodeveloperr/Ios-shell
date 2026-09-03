@@ -22,6 +22,7 @@ env:
   APP_SKU: welding-gas-wallet
   PROVISIONING_PROFILE_NAME: Welding Gas Wallet App Store CI
   SCHEME: WeldingGasWallet
+  PROVISIONING_PROFILE_NAME: Welding Gas Wallet App Store CI
   ARCHIVE_PATH: ${{ github.workspace }}/build/WeldingGasWallet.xcarchive
   EXPORT_PATH: ${{ github.workspace }}/build/export
 
@@ -52,6 +53,7 @@ jobs:
         run: |
           if [[ -d /Applications/Xcode_26.6.app ]]; then sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer; fi
           command -v xcodegen >/dev/null || brew install xcodegen
+          command -v rg >/dev/null || brew install ripgrep
           xcodebuild -version
 
       - name: Generate and verify screenshot simulator build
