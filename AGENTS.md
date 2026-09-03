@@ -151,6 +151,8 @@ When execution is authorized, the release checks are:
 
 TestFlight requires an explicit manual workflow dispatch and the exact confirmation text. Never upload or trigger a hosted run unless the user explicitly authorizes it.
 
+The Welding Wallet bridge workflow may create a `production_test_ads` TestFlight build that exercises the real free limit and StoreKit subscription while using Google's official demo app/banner IDs. That build is for internal testing only and must never be selected for App Store review or release. A storefront binary requires publisher-owned AdMob IDs and the full advertising release gate.
+
 
 ## Mandatory commerce-surface rule
 
