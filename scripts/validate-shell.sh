@@ -55,6 +55,11 @@ plutil -lint Shell/Resources/Info.plist >/dev/null
 plutil -lint Shell/Resources/Info-Ads.plist >/dev/null
 plutil -lint Shell/Resources/PrivacyInfo.xcprivacy >/dev/null
 
+for info_plist in Shell/Resources/Info.plist Shell/Resources/Info-Ads.plist; do
+  export_flag="$(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$info_plist" 2>/dev/null || true)"
+  [[ "$export_flag" == "false" ]] || fail "$info_plist must declare ITSAppUsesNonExemptEncryption=false unless the derived app adds non-exempt encryption"
+done
+
 ruby <<'RUBY'
 require "json"
 def keys(path)

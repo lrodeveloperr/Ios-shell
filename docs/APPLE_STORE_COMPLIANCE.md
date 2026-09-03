@@ -21,6 +21,7 @@ Reviewed against Apple’s official material on **2026-09-02**. Apple’s App Re
 - [ ] App Review can reach every feature. Provide a demo account, sample data, QR code, hardware instructions or fully featured demo mode when applicable.
 - [ ] Privacy Policy and Terms of Use links use HTTPS, open before purchase and onboarding acceptance, and match actual data handling.
 - [ ] Privacy manifest, Required Reason APIs, SDK manifests/signatures and App Store privacy answers match the final archive—not the template plan.
+- [ ] Export compliance is code-grounded. Both app Info.plists declare `ITSAppUsesNonExemptEncryption=false` only while the derived app uses no proprietary or non-exempt encryption; reassess and change this before release if app-specific code adds it.
 - [ ] The app asks only for permissions needed at that moment, explains them clearly and remains useful when optional permission is declined.
 - [ ] No private API, downloaded executable code, misleading capability, hidden feature, placeholder or dormant switch ships.
 - [ ] Accessibility, Dynamic Type, VoiceOver, contrast, 44-point hit targets, RTL, compact iPhone and iPad layouts were manually checked using `UI_REGRESSION_MATRIX.md`.
