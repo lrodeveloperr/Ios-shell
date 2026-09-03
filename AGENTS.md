@@ -124,6 +124,9 @@ The shell supports `.legalOnly`, `.singleScreen` and `.guidedTour`. The current 
 - Configure one to five destinations.
 - One destination uses a native `NavigationStack` without a tab bar.
 - Two to five destinations use adaptive `TabView`; iPhone shows tabs and wider iPad layouts may promote to a sidebar.
+- Every `.tabItem` must be a single native `Label` backed by either a valid SF Symbol (`systemImage:`) or a template-rendered asset-catalog image (`image:`).
+- Never place a custom `View`, `Canvas`, `Shape`, drawing closure or composed stack directly in `.tabItem`; the native iPhone tab bar may discard it and leave a blank icon. A custom destination icon belongs in `Assets.xcassets` and must be referenced through `Label(..., image:)`.
+- A tab-bar UI test must verify that every visible tab button contains an image. Seeing a custom icon inside the product canvas is not evidence that it renders in the native tab bar.
 - Preserve safe-area insets and avoid device-model checks.
 - The feature canvas owns product content, not global navigation.
 

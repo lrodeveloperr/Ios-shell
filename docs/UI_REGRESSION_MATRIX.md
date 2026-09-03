@@ -4,7 +4,7 @@ Run only when the user authorizes testing. Source tests live in `ShellUITests`; 
 
 | Destination | Size / mode | Required checks |
 |---|---|---|
-| Small iPhone | current compact supported iPhone, portrait | no clipping; onboarding fits; checkbox and legal links reachable; keyboard does not hide action; paywall price/period/restore/legal visible |
+| Small iPhone | current compact supported iPhone, portrait | no clipping; every tab has a visible icon and label; onboarding fits; checkbox and legal links reachable; keyboard does not hide action; Settings opens without termination; paywall price/period/restore/legal visible |
 | Large iPhone | portrait and landscape | readable line lengths; sheets dismiss; bottom navigation and optional banner do not overlap |
 | iPad | compact and regular split/full screen | adaptive sidebar/tab behavior; no empty unusable column; sheets and forms remain bounded |
 | Accessibility | largest accessibility Dynamic Type | scrolling preserves every action; labels do not truncate meaning; 44-point targets |
@@ -24,4 +24,3 @@ Required automation destinations when execution is authorized:
 - A current iPad simulator.
 - English, Spanish and an RTL locale.
 - Default and accessibility Dynamic Type sizes.
-

@@ -37,15 +37,24 @@ struct ShellRootView: View {
         .environment(model.language)
         .environment(\.locale, model.language.locale)
         .sheet(isPresented: $model.settingsPresented) {
-            NavigationStack { SettingsView() }
+            NavigationStack { SettingsView(model: model) }
+                .environment(model)
+                .environment(model.language)
+                .environment(\.locale, model.language.locale)
         }
 #if DEBUG
         .sheet(isPresented: $model.labPresented) {
             NavigationStack { ShellLabView(onResetOnboarding: legalConsent.resetForTesting) }
+                .environment(model)
+                .environment(model.language)
+                .environment(\.locale, model.language.locale)
         }
 #endif
         .sheet(isPresented: $model.paywallPresented) {
             NavigationStack { PaywallView() }
+                .environment(model)
+                .environment(model.language)
+                .environment(\.locale, model.language.locale)
         }
         .task {
             await model.start()

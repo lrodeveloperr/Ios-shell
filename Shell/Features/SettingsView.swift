@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @Environment(ShellModel.self) private var model
+    let model: ShellModel
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
