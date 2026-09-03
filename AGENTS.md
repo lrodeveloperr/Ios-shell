@@ -10,10 +10,12 @@ Read this file before changing code.
 - Do not introduce Flutter, React Native, UIKit screen architecture, WebView application shells or another cross-platform runtime.
 - Preserve native navigation, safe areas, Dynamic Type, VoiceOver, RTL and iPhone/iPad adaptation.
 - Keep private user data local unless the derived product specification explicitly authorizes a service.
+- Keep the privacy manifest code-grounded. The shell uses app-only `UserDefaults`, so `NSPrivacyAccessedAPICategoryUserDefaults` reason `CA92.1` is required; reassess rather than copying it if access crosses an app boundary or required-reason APIs change.
 - Do not fork or duplicate shell screens inside product code.
 - Never bypass `AccessController` or compose the feature canvas before access is allowed.
 - Never grant paid access from a UI flag, transaction callback alone, unverified StoreKit result or expired snapshot.
 - GitHub Actions and TestFlight workflows are manual-only. Never trigger either unless the user explicitly requests it.
+- Keep production-logic and screenshot-fixture TestFlight uploads in separate workflows with distinct exact confirmation phrases. A production workflow must not expose a switch that can compile `SCREENSHOT_BUILD`.
 
 ## Five-minute source map
 
@@ -41,6 +43,7 @@ Read this file before changing code.
 | Shared 31-locale terms | `Shell/Resources/gooduse-common-localization-v1.json` |
 | Localization release checklist | `docs/LOCALIZATION_RELEASE_CHECKLIST.md` |
 | Derived-app release wiring | `docs/DERIVED_APP_RELEASE_WIRING.md` |
+| Subscription lifecycle and listing | `docs/SUBSCRIPTION_LIFECYCLE_GUIDE.md` |
 
 ## What a derived app may replace
 
@@ -111,11 +114,20 @@ Usage-cap, one-time-unlock, ad-free subscription and free profiles do not show t
 - `AccessController` resolves access before the feature provider runs.
 - Product IDs and product types must match App Store Connect.
 - StoreKit results must pass verification.
+- A nonempty subscription-status result is authoritative only after at least one relevant status verifies. Failed verification must not be converted into a false, cache-clearing expiry result.
 - Pending or cancelled purchases do not grant access.
 - `Transaction.updates` and `Transaction.currentEntitlements` keep entitlement state current.
 - Revoked and expired products are excluded.
 - Product loading has a localized terminal failure and retry state; it must never spin forever after loading ends.
 - Subscription cache access stops at verified expiry.
+- Auto-renew cancellation is not expiration. Keep paid access while the verified subscription remains `subscribed`, even when `willAutoRenew` is false.
+- Read verified subscription status as well as the transaction: `inGracePeriod` remains entitled through its verified grace expiration; `inBillingRetryPeriod`, `expired`, and `revoked` do not grant access after grace.
+- Refresh entitlement at launch, transaction updates, purchase, restore, foreground activation, and a scheduled effective-expiration boundary. A process that remains open must not retain stale access.
+- Resolve entitlement again when a domain mutation commits. Never pass a paid Boolean captured when a form, sheet, deep link, or background task began.
+- For feature-specific free limits, the product repository—not a button—must enforce add, duplicate, edit, status, service, reminder, import, restore, migration, Undo, deep-link, and background mutation paths.
+- A lapse must not delete, silently archive, or conceal customer data. Document which records remain manageable, keep excess data viewable/exportable where feasible, and permit limit-reducing actions without payment.
+- Billing-retry UI routes to Apple subscription management instead of offering a duplicate purchase. Subscription apps expose current status and a Manage Subscription action in Settings.
+- Subscription purchase UI uses StoreKit's localized display name, full price, currency, and period. Never substitute a hard-coded product name or price for App Store metadata.
 - Keychain usage records are durable, bounded and deduplicated.
 - Shell Lab and entitlement overrides must remain inside `#if DEBUG`.
 
@@ -123,7 +135,7 @@ Usage-cap, one-time-unlock, ad-free subscription and free profiles do not show t
 
 The shell supports `.legalOnly`, `.singleScreen` and `.guidedTour`. The current default is `.legalOnly`. Every profile ends with one explicit acceptance control. Changing the legal version forces re-consent. Privacy and terms must be readable before acceptance.
 
-All onboarding, Settings and paywall legal controls must resolve from `ShellConfiguration.legal` and open the published HTTPS source of truth. Do not duplicate policy bodies in localization files. Before release, verify every configured destination returns a successful page and contains the intended app policy—not merely a non-error placeholder host.
+All onboarding, Settings and paywall legal controls must resolve from `ShellConfiguration.legal` and open the published HTTPS source of truth. Do not duplicate policy bodies in localization files. Before release, verify every configured destination returns a successful page and that its actual text matches the final SDK inventory, data flow, monetization, backup/restore, deletion and territory behavior—not merely a non-error placeholder host.
 
 ## Navigation and adaptation
 
@@ -184,6 +196,6 @@ Only an intentionally ad-supported app uses `ShellAds`, `Info-Ads.plist`, and an
 
 - Treat `docs/APPLE_STORE_COMPLIANCE.md` as a release gate, not a guarantee. Re-open every official Apple source and mark each current numbered guideline subsection PASS or N/A with evidence.
 - `gooduse-common-localization-v1.json` is the reviewed 31-locale shared terminology contract copied from the Android shell. It does not authorize advertising a locale until all app, legal, product and store text is complete.
-- Backup is disabled by default and has no entitlement. Enable it only with an app-owned `NativeBackupProviding` implementation, reviewed privacy disclosures, versioned serialization and recoverable conflict handling. Decode untrusted backups into temporary state, validate IDs/references/values, enforce every current free or paid limit, and commit atomically only after all checks pass.
+- Backup is disabled by default and has no entitlement. Enable it only with an app-owned `NativeBackupProviding` implementation, reviewed privacy disclosures, versioned serialization and recoverable conflict handling. Decode untrusted backups into temporary state, validate IDs/references/values, discard any entitlement, and commit atomically. When the product can safely represent paid-era over-limit data as locked/read-only, preserve it and apply the current policy after restore; otherwise reject before mutation. Never partially restore or unlock paid access from backup metadata.
 - Complete `docs/DERIVED_APP_RELEASE_WIRING.md` before every TestFlight production-logic build and storefront submission. Code, final archive, policies and App Store Connect metadata must describe the same product.
 - Record the adopted `ShellContract.currentVersion`. A breaking adoption requires ordered, idempotent `ShellMigration` steps; never erase data or silently skip a missing step.

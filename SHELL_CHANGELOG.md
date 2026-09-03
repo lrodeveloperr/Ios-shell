@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Hardened auto-renewable subscription lifecycle handling: verified renewal states, Billing Grace Period, billing retry, cancellation-through-expiry, foreground/expiration refresh, cached effective expiry, and in-app subscription management.
+- Prevented unverified subscription-status responses from being misclassified as authoritative expiry, and made paywalls use StoreKit's localized product name as well as price and period.
+- Separated screenshot-fixture uploads from production-logic uploads so one workflow input cannot select the wrong entitlement profile.
+- Declared the shell's app-only `UserDefaults` access under required-reason API code `CA92.1`; the prior empty privacy-manifest API list contradicted the source.
+- Added content-level legal-page parity checks after live Welding Wallet pages loaded successfully but still described the retired advertising and backup-rejection model.
+- Added the subscription lifecycle/listing guide from the Welding Gas Wallet lapse audit, including domain-level quota enforcement, stale-form and Delete/Undo bypass prevention, non-destructive over-limit handling, and paid-era backup preservation.
 - Added the reusable production wiring checklist from the Welding Gas Wallet audit, including archive/store parity and backup-import integrity gates.
 - Added the ads-with-subscription mode so verified subscription access can remove a free-user banner without app-local shell forks.
 - Added localized StoreKit failure messages and a terminal product-load retry state.

@@ -7,6 +7,7 @@ struct PaywallView: View {
     @Environment(ShellModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var legalDocument: LegalDocument?
+    @State private var showingManageSubscriptions = false
     let showsDoneButton: Bool
 
     init(showsDoneButton: Bool = false) {
@@ -27,18 +28,32 @@ struct PaywallView: View {
                         .symbolRenderingMode(.hierarchical)
                 }
 
-                if let product = model.access.purchases.primaryProduct {
+                if model.access.purchases.subscriptionCondition == .billingRetry {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("paywall.billingRetry.title", systemImage: "exclamationmark.triangle")
+                            .font(.headline)
+                        Text("paywall.billingRetry.message").foregroundStyle(.secondary)
+                        Button("subscription.manage") { showingManageSubscriptions = true }
+                            .buttonStyle(.borderedProminent)
+                            .frame(maxWidth: .infinity)
+                    }
+                } else if let product = model.access.purchases.primaryProduct {
                     Button {
                         Task { await model.access.purchases.purchasePrimary() }
                     } label: {
                         VStack(spacing: 2) {
-                            Text("paywall.purchase")
+                            Text(product.displayName)
                                 .font(.headline)
-                            if let subscription = product.subscription {
-                                Text(product.displayPrice) + Text(" · ") + Text(periodKey(subscription.subscriptionPeriod))
-                            } else {
-                                Text(product.displayPrice)
+                            Group {
+                                if let subscription = product.subscription {
+                                    Text(product.displayPrice) + Text(" · ") + Text(periodKey(subscription.subscriptionPeriod))
+                                } else {
+                                    Text(product.displayPrice)
+                                }
                             }
+                            .font(.title2.bold())
+                            Text("paywall.purchase")
+                                .font(.subheadline.weight(.semibold))
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -90,6 +105,7 @@ struct PaywallView: View {
             LegalView(document: document)
                 .ignoresSafeArea()
         }
+        .manageSubscriptionsSheet(isPresented: $showingManageSubscriptions)
         .onChange(of: model.access.purchases.isEntitled) { _, entitled in
             if entitled { dismiss() }
         }

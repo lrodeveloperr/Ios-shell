@@ -72,6 +72,22 @@ final class ShellTests: XCTestCase {
         XCTAssertFalse(snapshot.isEntitled(to: ["unknown"], at: now))
     }
 
+    func testCancelledAutoRenewalKeepsAccessUntilPaidExpiration() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let expiration = now.addingTimeInterval(60)
+        let condition = SubscriptionCondition.subscribed(willAutoRenew: false, expirationDate: expiration)
+        XCTAssertTrue(SubscriptionAccessEvaluation.resolve(condition: condition, at: now).grantsAccess)
+        XCTAssertFalse(SubscriptionAccessEvaluation.resolve(condition: condition, at: expiration).grantsAccess)
+    }
+
+    func testGracePeriodIsEntitledButBillingRetryExpiryAndRevocationAreNot() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        XCTAssertTrue(SubscriptionAccessEvaluation.resolve(condition: .gracePeriod(expirationDate: now.addingTimeInterval(60)), at: now).grantsAccess)
+        XCTAssertFalse(SubscriptionAccessEvaluation.resolve(condition: .billingRetry, at: now).grantsAccess)
+        XCTAssertFalse(SubscriptionAccessEvaluation.resolve(condition: .expired, at: now).grantsAccess)
+        XCTAssertFalse(SubscriptionAccessEvaluation.resolve(condition: .revoked, at: now).grantsAccess)
+    }
+
     func testProductIdentifiersAreSelectedByProfile() {
         XCTAssertEqual(configuration(.free).productIDs, [])
         XCTAssertEqual(configuration(.ads).productIDs, [])
@@ -81,6 +97,9 @@ final class ShellTests: XCTestCase {
         XCTAssertEqual(configuration(.subscription).productIDs, ["monthly"])
         XCTAssertEqual(configuration(.usageCapWithOneTimeUnlock).productIDs, ["lifetime"])
         XCTAssertEqual(configuration(.usageCapWithSubscription).productIDs, ["monthly"])
+        XCTAssertFalse(configuration(.oneTimeUnlock).includesSubscription)
+        XCTAssertTrue(configuration(.subscription).includesSubscription)
+        XCTAssertTrue(configuration(.adsWithSubscription).includesSubscription)
     }
 
     func testTemplateNavigationAndLanguagesAreBounded() {

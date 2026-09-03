@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ShellRootView: View {
+    @Environment(\.scenePhase) private var scenePhase
     private let featureProvider: any FeatureCanvasProviding
     @State private var model: ShellModel
     @State private var legalConsent: LegalConsentStore
@@ -67,6 +68,9 @@ struct ShellRootView: View {
             if shouldShowAd && !legalConsent.requiresPresentation {
                 Task { await model.prepareAdvertisingIfNeeded() }
             }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await model.access.purchases.refreshEntitlements() } }
         }
     }
 

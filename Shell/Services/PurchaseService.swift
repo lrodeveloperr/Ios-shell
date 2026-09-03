@@ -8,6 +8,31 @@ enum EntitlementState: Equatable, Sendable {
     case notEntitled
 }
 
+enum SubscriptionCondition: Equatable, Sendable {
+    case notApplicable
+    case checking
+    case subscribed(willAutoRenew: Bool, expirationDate: Date)
+    case gracePeriod(expirationDate: Date)
+    case billingRetry
+    case expired
+    case revoked
+    case offlineCached(expirationDate: Date)
+}
+
+struct SubscriptionAccessEvaluation: Equatable, Sendable {
+    let grantsAccess: Bool
+    let effectiveExpiration: Date?
+
+    static func resolve(condition: SubscriptionCondition, at date: Date) -> SubscriptionAccessEvaluation {
+        switch condition {
+        case let .subscribed(_, expirationDate), let .gracePeriod(expirationDate), let .offlineCached(expirationDate):
+            SubscriptionAccessEvaluation(grantsAccess: expirationDate > date, effectiveExpiration: expirationDate)
+        case .notApplicable, .checking, .billingRetry, .expired, .revoked:
+            SubscriptionAccessEvaluation(grantsAccess: false, effectiveExpiration: nil)
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class PurchaseService {
@@ -16,9 +41,12 @@ final class PurchaseService {
     private let now: @Sendable () -> Date
     @ObservationIgnored
     nonisolated(unsafe) private var updatesTask: Task<Void, Never>?
+    @ObservationIgnored
+    nonisolated(unsafe) private var expirationTask: Task<Void, Never>?
 
     private(set) var products: [Product] = []
     private(set) var entitlementState: EntitlementState = .checking
+    private(set) var subscriptionCondition: SubscriptionCondition
     private(set) var isLoadingProducts = false
     var showingError = false
     var message = ""
@@ -31,9 +59,16 @@ final class PurchaseService {
         self.configuration = configuration
         self.cache = cache
         self.now = now
+        subscriptionCondition = configuration.includesSubscription ? .checking : .notApplicable
 
         if let snapshot = cache.load(), snapshot.isEntitled(to: configuration.productIDs, at: now()) {
-            entitlementState = .offlineCached(productIDs: snapshot.entitledProductIDs.intersection(configuration.productIDs))
+            let cachedIDs = snapshot.entitledProductIDs.intersection(configuration.productIDs)
+            entitlementState = .offlineCached(productIDs: cachedIDs)
+            if configuration.includesSubscription,
+               let expiration = snapshot.earliestExpiration(for: configuration.productIDs) {
+                subscriptionCondition = .offlineCached(expirationDate: expiration)
+                scheduleEntitlementRefresh(at: expiration)
+            }
         } else if configuration.productIDs.isEmpty {
             entitlementState = .notEntitled
         }
@@ -49,7 +84,10 @@ final class PurchaseService {
         }
     }
 
-    deinit { updatesTask?.cancel() }
+    deinit {
+        updatesTask?.cancel()
+        expirationTask?.cancel()
+    }
 
     var isEntitled: Bool {
         switch entitlementState {
@@ -129,13 +167,34 @@ final class PurchaseService {
             return
         }
 
+        expirationTask?.cancel()
         var productIDs = Set<String>()
         var expiries: [String: Date] = [:]
+        let subscriptionResult = await loadSubscriptionStatus()
+
+        if let subscription = subscriptionResult.evaluation,
+           subscription.access.grantsAccess,
+           let expiration = subscription.access.effectiveExpiration {
+            productIDs.insert(subscription.productID)
+            expiries[subscription.productID] = expiration
+            subscriptionCondition = subscription.condition
+        } else if configuration.includesSubscription, subscriptionResult.isAuthoritative {
+            subscriptionCondition = subscriptionResult.evaluation?.condition ?? .expired
+        }
 
         for await result in Transaction.currentEntitlements {
             guard let transaction = try? verified(result),
                   configuration.productIDs.contains(transaction.productID),
                   transaction.revocationDate == nil else { continue }
+
+            if transaction.productID == configuration.subscriptionProductID {
+                if subscriptionResult.isAuthoritative { continue }
+                guard let expirationDate = transaction.expirationDate, expirationDate > now() else { continue }
+                productIDs.insert(transaction.productID)
+                expiries[transaction.productID] = expirationDate
+                subscriptionCondition = .offlineCached(expirationDate: expirationDate)
+                continue
+            }
 
             if let expirationDate = transaction.expirationDate {
                 guard expirationDate > now() else { continue }
@@ -144,8 +203,21 @@ final class PurchaseService {
             productIDs.insert(transaction.productID)
         }
 
-        if productIDs.isEmpty {
+        if productIDs.isEmpty,
+           !subscriptionResult.isAuthoritative,
+           let snapshot = cache.load(),
+           snapshot.isEntitled(to: configuration.productIDs, at: now()) {
+            let cachedIDs = snapshot.entitledProductIDs.intersection(configuration.productIDs)
+            entitlementState = .offlineCached(productIDs: cachedIDs)
+            if let expiration = snapshot.earliestExpiration(for: configuration.productIDs) {
+                subscriptionCondition = .offlineCached(expirationDate: expiration)
+                scheduleEntitlementRefresh(at: expiration)
+            }
+        } else if productIDs.isEmpty {
             entitlementState = .notEntitled
+            if configuration.includesSubscription, subscriptionCondition == .checking {
+                subscriptionCondition = .expired
+            }
             try? cache.clear()
         } else {
             let snapshot = EntitlementSnapshot(
@@ -161,12 +233,17 @@ final class PurchaseService {
                 entitlementState = .entitled(productIDs: productIDs)
                 present(error)
             }
+            scheduleEntitlementRefresh(at: expiries.values.min())
         }
     }
 
     private func handleTransactionUpdate(_ result: VerificationResult<Transaction>) async {
         do {
             let transaction = try verified(result)
+            if configuration.productIDs.contains(transaction.productID), transaction.revocationDate != nil {
+                try? cache.clear()
+                subscriptionCondition = .revoked
+            }
             await transaction.finish()
             await refreshEntitlements()
         } catch {
@@ -178,6 +255,102 @@ final class PurchaseService {
         switch result {
         case let .verified(value): value
         case .unverified: throw PurchaseError.failedVerification
+        }
+    }
+
+    private struct VerifiedSubscriptionEvaluation {
+        let productID: String
+        let condition: SubscriptionCondition
+        let access: SubscriptionAccessEvaluation
+    }
+
+    private struct SubscriptionStatusResult {
+        let evaluation: VerifiedSubscriptionEvaluation?
+        let isAuthoritative: Bool
+    }
+
+    private func loadSubscriptionStatus() async -> SubscriptionStatusResult {
+        guard configuration.includesSubscription,
+              let product = products.first(where: { $0.id == configuration.subscriptionProductID }),
+              let subscription = product.subscription else {
+            return SubscriptionStatusResult(evaluation: nil, isAuthoritative: false)
+        }
+
+        do {
+            let statuses = try await subscription.status
+            var best: VerifiedSubscriptionEvaluation?
+            var verifiedRelevantStatusCount = 0
+            for status in statuses {
+                guard let transaction = try? verified(status.transaction),
+                      let renewalInfo = try? verified(status.renewalInfo),
+                      configuration.productIDs.contains(transaction.productID) else { continue }
+                verifiedRelevantStatusCount += 1
+
+                let condition: SubscriptionCondition
+                if transaction.revocationDate != nil {
+                    condition = .revoked
+                } else {
+                    switch status.state {
+                    case .subscribed:
+                        guard let expiration = transaction.expirationDate else { continue }
+                        condition = .subscribed(willAutoRenew: renewalInfo.willAutoRenew, expirationDate: expiration)
+                    case .inGracePeriod:
+                        guard let expiration = renewalInfo.gracePeriodExpirationDate else { continue }
+                        condition = .gracePeriod(expirationDate: expiration)
+                    case .inBillingRetryPeriod:
+                        condition = .billingRetry
+                    case .expired:
+                        condition = .expired
+                    case .revoked:
+                        condition = .revoked
+                    @unknown default:
+                        continue
+                    }
+                }
+
+                let resolvedAccess = SubscriptionAccessEvaluation.resolve(condition: condition, at: now())
+                let effectiveCondition: SubscriptionCondition
+                if !resolvedAccess.grantsAccess {
+                    switch condition {
+                    case .subscribed, .gracePeriod, .offlineCached:
+                        effectiveCondition = .expired
+                    default:
+                        effectiveCondition = condition
+                    }
+                } else {
+                    effectiveCondition = condition
+                }
+                let candidate = VerifiedSubscriptionEvaluation(
+                    productID: transaction.productID,
+                    condition: effectiveCondition,
+                    access: resolvedAccess
+                )
+                if best == nil || (!best!.access.grantsAccess && candidate.access.grantsAccess) ||
+                    ((candidate.access.effectiveExpiration ?? .distantPast) > (best!.access.effectiveExpiration ?? .distantPast)) {
+                    best = candidate
+                }
+            }
+            // No statuses is an authoritative "not subscribed" result. Returned
+            // but unverified statuses are not: keep only a still-valid local cache
+            // until StoreKit can provide a verified answer.
+            return SubscriptionStatusResult(
+                evaluation: best,
+                isAuthoritative: statuses.isEmpty || verifiedRelevantStatusCount > 0
+            )
+        } catch {
+            return SubscriptionStatusResult(evaluation: nil, isAuthoritative: false)
+        }
+    }
+
+    private func scheduleEntitlementRefresh(at expiration: Date?) {
+        expirationTask?.cancel()
+        guard let expiration else { return }
+        let delay = max(1, expiration.timeIntervalSince(now()) + 1)
+        expirationTask = Task { @MainActor [weak self] in
+            do { try await Task.sleep(for: .seconds(delay)) }
+            catch { return }
+            guard let self else { return }
+            await self.refreshEntitlements()
         }
     }
 

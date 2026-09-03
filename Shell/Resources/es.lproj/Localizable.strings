@@ -63,6 +63,8 @@
 "purchase.pending" = "La compra está pendiente de aprobación. El acceso se actualizará automáticamente cuando App Store la complete.";
 "purchase.verificationFailed" = "No se pudo verificar la transacción de App Store.";
 "paywall.subscriptionDisclosure" = "El pago se carga a tu cuenta de Apple al confirmar. La suscripción se renueva automáticamente salvo que la canceles en los ajustes de tu cuenta de Apple antes de la renovación.";
+"paywall.billingRetry.title" = "Apple está reintentando el cobro";
+"paywall.billingRetry.message" = "Actualiza la información de pago de tu cuenta de Apple para recuperar el acceso de pago. Los datos deben seguir disponibles según la política del producto cuando termine la suscripción.";
 "paywall.period.day.one" = "cada día";
 "paywall.period.day.other %lld" = "cada %lld días";
 "paywall.period.week.one" = "cada semana";
@@ -74,6 +76,15 @@
 "paywall.period.unknown" = "periodo de suscripción";
 
 "upgrade.subtitle" = "Gestiona las compras y restaura el acceso";
+"subscription.status" = "Suscripción";
+"subscription.manage" = "Gestionar suscripción";
+"subscription.manage.subtitle" = "Consulta la facturación o desactiva la renovación automática";
+"subscription.inactive" = "Inactiva";
+"subscription.renews %@" = "Se renueva el %@";
+"subscription.ends %@" = "El acceso continúa hasta el %@";
+"subscription.grace %@" = "Problema de pago · El acceso sigue activo hasta el %@";
+"subscription.billingRetry" = "Se requiere el pago para recuperar el acceso";
+"subscription.offline %@" = "Verificada sin conexión hasta el %@";
 "language" = "Idioma";
 "support" = "Ayuda y soporte";
 "privacyOptions" = "Opciones de privacidad";

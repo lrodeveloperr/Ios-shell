@@ -13,23 +13,32 @@ Use this checklist for every app created from the shell. It records the failure 
 | Product load failure spins forever | The empty product state was rendered as loading even after the request ended | Paywall distinguishes loading from unavailable and provides a retry action | Test offline/failure, retry, pending, cancel, restore and success |
 | Unsupported/stale locale persists | Stored selections and device language mappings were not checked against the current shipped list | `LanguageController` rejects stale values and resolves only enabled locales | Relaunch with a removed locale and test unmatched device languages |
 | Partly translated locale is advertised | Shared shell terms were mistaken for a complete app translation | Exact key parity, duplicate-key rejection and the cultural checklist gate every enabled locale | Product, validation, notification, accessibility and commerce copy reviewed |
-| Backup bypasses a free/paid limit | Imported data was trusted and committed without applying current domain constraints | Backup-provider contract requires temporary decode, integrity validation, limit enforcement and atomic commit | Malformed, duplicate-ID, broken-reference and over-limit imports fail without mutation |
+| Backup bypasses a free/paid limit | Imported data was trusted and committed without applying current domain constraints | Restore discards entitlement and applies the same locked/read-only policy as local paid-era data; unsupported safe states fail atomically | Malformed data fails without mutation; valid paid-era data stays preserved but does not unlock paid operations |
 | Test ads leak into a storefront binary | Demo IDs were stored as ordinary release configuration | Demo IDs are allowed only through an explicitly named internal test workflow and must be asserted in that archive | Storefront release gate rejects Google demo IDs; production-test archive identifies exact demo IDs |
 | Upload build number is rejected | `GITHUB_RUN_NUMBER` can be lower than a previously uploaded timestamp build | Upload workflows use a UTC timestamp plus run number | Final archive `CFBundleVersion` is unique and greater than prior uploads |
 | Hosted validation cannot start | The validator's executable bit was lost while publishing a content update | The shell tracks the executable mode and self-checks it | Fresh GitHub checkout executes `scripts/validate-shell.sh` directly |
 | Release unit tests cannot import the app | The Release module was built without testability while tests used `@testable import` | Upload workflows enable testability only for the simulator test command | Release unit tests compile and pass before the unaffected archive step |
 | Export-compliance prompt repeats | The final archive lacked a code-grounded encryption declaration | Both plist profiles carry `ITSAppUsesNonExemptEncryption`; archive verification checks it | Reassess the value whenever networking or cryptography changes |
+| Privacy manifest omits app preference access | An empty required-reason list was copied even though the shell uses `UserDefaults` | Declare `NSPrivacyAccessedAPICategoryUserDefaults` with app-only reason `CA92.1` upstream | Archive privacy report matches source APIs and every embedded SDK manifest |
 | App Store text contradicts the binary | Review notes, screenshots or product metadata described an older business model | Storefront and subscription metadata are a required parity gate | Review notes accurately describe ads, consent, limits, subscription and test path |
+| Legal URLs load but describe an older app | HTTP success was mistaken for content validation | Read each published page and compare SDKs, data flow, monetization, restore, deletion and territory claims with the final source/archive | Record the page title, effective date and parity result for every configured legal destination |
+| Screenshot entitlement ships as a production test | One upload workflow switched between fixture/free and production configurations | Keep screenshot and production-logic uploads in separate manual workflows with distinct confirmation phrases | Workflow source and archive compilation conditions prove which profile was uploaded |
 
 ## Code and archive
 
 - [ ] The selected monetization mode matches the product: free access, limit behavior, ads and the paid unlock are tested as one contract.
 - [ ] Every mutation path enforces the same entitlement or domain limit, including add, duplicate, import, restore, migration, deep link and background processing.
+- [ ] An operation opened while entitled re-checks access when it commits; expiry cannot be bypassed by leaving a form open.
+- [ ] Delete/Undo and lifecycle changes cannot manufacture another free managed slot.
+- [ ] Cancellation, paid expiration, Billing Grace Period, billing retry, recovery, refund/revocation and offline expiry each have an explicit tested result.
+- [ ] Subscription Settings shows current status and opens Apple's management surface; billing retry does not offer a duplicate purchase.
 - [ ] StoreKit product IDs and types exactly match App Store Connect. Customer price and billing period come only from `Product`.
 - [ ] Pending, cancelled, unverified, expired, refunded and revoked transactions do not unlock access.
 - [ ] A failed product request leaves a localized retry action rather than a permanent spinner.
 - [ ] The archive contains the intended bundle ID, build number, plist profile, product configuration and advertising IDs.
+- [ ] Production upload workflows cannot select a screenshot/free fixture profile; screenshot uploads use a separately named workflow and confirmation phrase.
 - [ ] `ITSAppUsesNonExemptEncryption` is verified in the archive and is still truthful for the derived code.
+- [ ] Required-reason declarations match source use; the shell's app-only `UserDefaults` access keeps reason `CA92.1`, and every new API category is reviewed rather than copied blindly.
 - [ ] Unit tests run in the upload workflow before signing and upload.
 
 ## Advertising
@@ -52,9 +61,14 @@ Use this checklist for every app created from the shell. It records the failure 
 ## Store and policy parity
 
 - [ ] Every policy/support/deletion/safety URL returns the intended current document over HTTPS.
+- [ ] Policy text—not only HTTP status—matches the final SDK inventory, data flow, monetization, backup/restore behavior, deletion behavior and storefront availability.
 - [ ] App description, promotional text, keywords, screenshots, privacy answers and review notes use the correct locale and describe the current binary.
+- [ ] The first three screenshots tell the core search-results story; every later image covers one distinct benefit, and required iPhone/iPad sizes have no alpha channel.
+- [ ] The description avoids fixed storefront pricing; keywords are relevant and non-duplicative; localized metadata and screenshots match the language actually visible in the UI.
 - [ ] Subscription duration, reference price, regional prices, availability, display names and descriptions match the in-app offer.
 - [ ] Review notes state the real advertising SDK and consent flow, free limit, subscription benefit and reviewer test instructions.
+- [ ] One subscription group is used for one service; group/product names and descriptions are localized for every claimed listing language.
+- [ ] The first subscription is added for review with the app version, including its review screenshot and navigation notes.
 - [ ] An internal test-ad build is never attached to an App Store review submission.
 
 ## Release decision

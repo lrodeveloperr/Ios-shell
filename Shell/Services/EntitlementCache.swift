@@ -16,6 +16,13 @@ struct EntitlementSnapshot: Codable, Equatable, Sendable {
         }
         return false
     }
+
+    func earliestExpiration(for productIDs: Set<String>) -> Date? {
+        entitledProductIDs
+            .intersection(productIDs)
+            .compactMap { subscriptionExpiryByProductID[$0] }
+            .min()
+    }
 }
 
 protocol EntitlementCaching: Sendable {

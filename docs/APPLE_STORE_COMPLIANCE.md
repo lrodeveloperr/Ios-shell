@@ -34,6 +34,10 @@ Reviewed against Apple’s official material on **2026-09-02**. Apple’s App Re
 - [ ] Auto-renewal is disclosed; privacy and Terms of Use are visible; subscription grouping prevents accidental duplicate subscriptions.
 - [ ] Restore is visible for restorable purchases. Pending, cancelled, unverified, expired, refunded or revoked transactions never unlock access.
 - [ ] Product-loading failure ends in a localized retry state and never leaves a permanent loading indicator.
+- [ ] Cancellation retains access through paid expiration; grace, billing retry, recovery, expiry and revocation follow `docs/SUBSCRIPTION_LIFECYCLE_GUIDE.md`.
+- [ ] Subscription status and Apple's Manage Subscription surface are available in Settings; billing retry does not present a duplicate purchase.
+- [ ] Full StoreKit-localized renewal price is the most prominent price; subscription name, duration and unlocked service are explicit.
+- [ ] Subscription group and product metadata are localized for every claimed listing language; review screenshot and navigation notes match the submitted binary.
 - [ ] Purchase success is verified through StoreKit; `Transaction.updates` and current entitlements keep access current.
 - [ ] Free trial, introductory, promotional, offer-code and win-back claims appear only when StoreKit confirms eligibility and terms.
 - [ ] Recurring payment has defensible ongoing value. One-time value is not misleadingly sold as a subscription.

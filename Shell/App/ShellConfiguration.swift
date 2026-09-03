@@ -86,6 +86,7 @@ struct MonetizationConfiguration: Sendable {
 
     var includesAdvertising: Bool { mode == .ads || mode == .adsWithRemovePurchase || mode == .adsWithSubscription }
     var includesPurchase: Bool { !productIDs.isEmpty }
+    var includesSubscription: Bool { mode == .adsWithSubscription || mode == .subscription || mode == .usageCapWithSubscription }
 }
 
 struct ShellDestination: Hashable, Identifiable, Sendable {

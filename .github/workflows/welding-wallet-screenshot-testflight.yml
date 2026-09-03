@@ -1,20 +1,12 @@
-name: Welding Wallet TestFlight
+name: Welding Wallet Screenshot TestFlight
 
 on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: Type the confirmation phrase for the selected build type
+        description: Type UPLOAD WELDING WALLET SCREENSHOT to confirm the screenshot-data build
         required: true
         type: string
-      build_type:
-        description: Choose screenshot data or the subscription-only production logic
-        required: true
-        default: screenshot
-        type: choice
-        options:
-          - screenshot
-          - subscription
 
 permissions:
   contents: read
@@ -32,7 +24,6 @@ env:
   PROVISIONING_PROFILE_NAME: Welding Gas Wallet App Store CI
   ARCHIVE_PATH: ${{ github.workspace }}/build/WeldingGasWallet.xcarchive
   EXPORT_PATH: ${{ github.workspace }}/build/export
-  BUILD_TYPE: ${{ inputs.build_type }}
 
 jobs:
   upload:
@@ -50,12 +41,7 @@ jobs:
         env:
           CONFIRMATION: ${{ inputs.confirmation }}
         run: |
-          case "$BUILD_TYPE" in
-            screenshot) expected='UPLOAD WELDING WALLET SCREENSHOT' ;;
-            subscription) expected='UPLOAD WELDING WALLET SUBSCRIPTION TEST' ;;
-            *) echo "Unsupported build type: $BUILD_TYPE" >&2; exit 1 ;;
-          esac
-          [[ "$CONFIRMATION" == "$expected" ]] || { echo "Confirmation must exactly match $expected." >&2; exit 1; }
+          [[ "$CONFIRMATION" == "UPLOAD WELDING WALLET SCREENSHOT" ]] || { echo 'Confirmation must exactly match UPLOAD WELDING WALLET SCREENSHOT.' >&2; exit 1; }
           build_number="$(date -u +%y%m%d%H%M).${GITHUB_RUN_NUMBER}"
           echo "BUILD_NUMBER=$build_number" >> "$GITHUB_ENV"
 
@@ -70,11 +56,7 @@ jobs:
         run: |
           scripts/validate-shell.sh --app
           xcodegen generate
-          extra_settings=()
-          if [[ "$BUILD_TYPE" == "screenshot" ]]; then
-            extra_settings+=("SWIFT_ACTIVE_COMPILATION_CONDITIONS=SCREENSHOT_BUILD")
-          fi
-          xcodebuild -project WeldingGasWallet.xcodeproj -scheme "$SCHEME" -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO CURRENT_PROJECT_VERSION="$BUILD_NUMBER" "${extra_settings[@]}" build
+          xcodebuild -project WeldingGasWallet.xcodeproj -scheme "$SCHEME" -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO CURRENT_PROJECT_VERSION="$BUILD_NUMBER" SWIFT_ACTIVE_COMPILATION_CONDITIONS=SCREENSHOT_BUILD build
 
       - name: Run unit tests before upload
         run: |
@@ -86,11 +68,7 @@ jobs:
           ')"
           xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
           xcrun simctl bootstatus "$DEVICE_ID" -b
-          extra_settings=()
-          if [[ "$BUILD_TYPE" == "screenshot" ]]; then
-            extra_settings+=("SWIFT_ACTIVE_COMPILATION_CONDITIONS=SCREENSHOT_BUILD")
-          fi
-          xcodebuild -project WeldingGasWallet.xcodeproj -scheme "$SCHEME" -configuration Release -destination "platform=iOS Simulator,id=$DEVICE_ID" CODE_SIGNING_ALLOWED=NO ENABLE_TESTABILITY=YES CURRENT_PROJECT_VERSION="$BUILD_NUMBER" "${extra_settings[@]}" -only-testing:WeldingGasWalletTests test
+          xcodebuild -project WeldingGasWallet.xcodeproj -scheme "$SCHEME" -configuration Release -destination "platform=iOS Simulator,id=$DEVICE_ID" CODE_SIGNING_ALLOWED=NO ENABLE_TESTABILITY=YES CURRENT_PROJECT_VERSION="$BUILD_NUMBER" SWIFT_ACTIVE_COMPILATION_CONDITIONS=SCREENSHOT_BUILD -only-testing:WeldingGasWalletTests test
 
       - name: Prepare App Store Connect credentials
         env:
@@ -219,11 +197,7 @@ jobs:
         run: |
           rm -rf "$ARCHIVE_PATH" "$EXPORT_PATH"
           mkdir -p "$(dirname "$ARCHIVE_PATH")" "$EXPORT_PATH"
-          extra_settings=()
-          if [[ "$BUILD_TYPE" == "screenshot" ]]; then
-            extra_settings+=("SWIFT_ACTIVE_COMPILATION_CONDITIONS=SCREENSHOT_BUILD")
-          fi
-          xcodebuild -project WeldingGasWallet.xcodeproj -scheme "$SCHEME" -configuration Release -destination 'generic/platform=iOS' -archivePath "$ARCHIVE_PATH" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" PRODUCT_BUNDLE_IDENTIFIER="$IOS_BUNDLE_ID" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" "${extra_settings[@]}" clean archive
+          xcodebuild -project WeldingGasWallet.xcodeproj -scheme "$SCHEME" -configuration Release -destination 'generic/platform=iOS' -archivePath "$ARCHIVE_PATH" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" PRODUCT_BUNDLE_IDENTIFIER="$IOS_BUNDLE_ID" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" SWIFT_ACTIVE_COMPILATION_CONDITIONS=SCREENSHOT_BUILD clean archive
           app="$(find "$ARCHIVE_PATH/Products/Applications" -maxdepth 1 -type d -name '*.app' -print -quit)"
           test -n "$app"
           [[ "$(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$app/Info.plist")" == "false" ]]
@@ -270,6 +244,6 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: WeldingGasWallet-${{ env.BUILD_TYPE }}-TestFlight-${{ env.BUILD_NUMBER }}
+          name: WeldingGasWallet-screenshot-TestFlight-${{ env.BUILD_NUMBER }}
           path: ${{ env.IPA_PATH }}
           retention-days: 7
