@@ -49,6 +49,7 @@ require_text Shell/Services/LanguageController.swift 'supported.contains(stored)
 require_text Shell/Services/NativeBackup.swift 'current free/paid limits'
 require_text .github/workflows/testflight.yml 'date -u +%y%m%d%H%M'
 require_text .github/workflows/testflight.yml 'Run unit tests before upload'
+require_text .github/workflows/testflight.yml 'ENABLE_TESTABILITY=YES'
 require_text .github/workflows/welding-wallet-screenshot-testflight.yml 'GOOGLE_TEST_ADMOB_BANNER_ID'
 require_text .github/workflows/welding-wallet-screenshot-testflight.yml 'Run unit tests before upload'
 reject_text Shell/Features/SettingsView.swift 'NavigationLink { PaywallView() }'

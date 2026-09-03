@@ -98,7 +98,7 @@ jobs:
             extra_settings+=("WELDING_IOS_ADMOB_APP_ID=$GOOGLE_TEST_ADMOB_APP_ID")
             extra_settings+=("WELDING_IOS_ADMOB_BANNER_ID=$GOOGLE_TEST_ADMOB_BANNER_ID")
           fi
-          xcodebuild -project WeldingGasWallet.xcodeproj -scheme "$SCHEME" -configuration Release -destination "platform=iOS Simulator,id=$DEVICE_ID" CODE_SIGNING_ALLOWED=NO CURRENT_PROJECT_VERSION="$BUILD_NUMBER" "${extra_settings[@]}" -only-testing:WeldingGasWalletTests test
+          xcodebuild -project WeldingGasWallet.xcodeproj -scheme "$SCHEME" -configuration Release -destination "platform=iOS Simulator,id=$DEVICE_ID" CODE_SIGNING_ALLOWED=NO ENABLE_TESTABILITY=YES CURRENT_PROJECT_VERSION="$BUILD_NUMBER" "${extra_settings[@]}" -only-testing:WeldingGasWalletTests test
 
       - name: Prepare App Store Connect credentials
         env:
