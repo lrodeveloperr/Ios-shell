@@ -26,6 +26,8 @@ Reviewed against Apple’s official material on **2026-09-02**. Apple’s App Re
 - [ ] The app asks only for permissions needed at that moment, explains them clearly and remains useful when optional permission is declined.
 - [ ] No private API, downloaded executable code, misleading capability, hidden feature, placeholder or dormant switch ships.
 - [ ] Accessibility, Dynamic Type, VoiceOver, contrast, 44-point hit targets, RTL, compact iPhone and iPad layouts were manually checked using `UI_REGRESSION_MATRIX.md`.
+- [ ] If backup is offered, the architecture and disclosures pass `BACKUP_AND_USAGE_INTEGRITY.md`: manual Files backup has no artificial login gate; import is validated and atomic; purchase entitlement is excluded; and a usage-cap high-water mark cannot be reset by delete, reinstall or restore.
+- [ ] The signed executable and embedded provisioning profile contain only required capabilities. Remove Sign in with Apple and iCloud entitlements when the final product uses only user-selected Files documents.
 
 ## Purchases and subscriptions
 

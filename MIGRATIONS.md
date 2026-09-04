@@ -7,9 +7,10 @@ The compiled shell contract is `ShellContract.currentVersion`. A derived app rec
 1. Choose `Shell` for no advertising or `ShellAds` for an app whose reviewed monetization mode includes ads.
 2. Keep GAD/SKAdNetwork metadata only in `Info-Ads.plist`; never copy it into `Info.plist`.
 3. Remove every app logo, icon, named brand image and app-name hero from commerce surfaces. Run `scripts/check-commerce-branding.sh` when execution is authorized.
-4. Leave `backup.enabled` false unless the app adds a reviewed `NativeBackupProviding` implementation, iCloud entitlement, privacy disclosure, serialization version and rollback-safe conflict behavior.
-5. Advertise a locale only after all shell, product, legal and store text is translated and reviewed. `LocalizationBaseline` is terminology scope, not proof of completion.
-6. Add a migration closure before changing persistent product schema. Each step must be idempotent, preserve a recoverable copy when practical, and update the stored contract version only after success.
+4. Leave `backup.enabled` false unless the app adds a reviewed implementation and passes `docs/BACKUP_AND_USAGE_INTEGRITY.md`. Prefer user-selected Files export/import for manual backup; do not add Sign in with Apple or iCloud entitlements unless provider-managed cloud behavior genuinely requires them. Version the schema, validate before mutation, restore atomically and omit rollback unless a durable tested recovery snapshot exists.
+5. If the app has a usage cap, migrate to a bounded device-only Keychain high-water ledger before enabling backup. Preserve the maximum of prior device usage, imported usage and restored completed outcomes; never reinterpret a Keychain error as a new zero-use ledger.
+6. Advertise a locale only after all shell, product, legal and store text is translated and reviewed. `LocalizationBaseline` is terminology scope, not proof of completion.
+7. Add a migration closure before changing persistent product schema. Each step must be idempotent, preserve a recoverable copy when practical, and update the stored contract version only after success.
 
 Example:
 
