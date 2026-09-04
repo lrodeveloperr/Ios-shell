@@ -119,6 +119,8 @@ Usage-cap, one-time-unlock, ad-free subscription and free profiles do not show t
 - `Transaction.updates` and `Transaction.currentEntitlements` keep entitlement state current.
 - Revoked and expired products are excluded.
 - Product loading has a localized terminal failure and retry state; it must never spin forever after loading ends.
+- Purchase, restore and catalog retry are single-flight operations. Repeated taps must join or ignore the active request rather than start duplicate StoreKit work.
+- An empty StoreKit product response is an unavailable-catalog result, not success. Explain the state, expose one full-size localized “Try again” control, show loading while it retries, and surface a second empty response instead of appearing inert.
 - Subscription cache access stops at verified expiry.
 - Auto-renew cancellation is not expiration. Keep paid access while the verified subscription remains `subscribed`, even when `willAutoRenew` is false.
 - Read verified subscription status as well as the transaction: `inGracePeriod` remains entitled through its verified grace expiration; `inBillingRetryPeriod`, `expired`, and `revoked` do not grant access after grace.
@@ -149,6 +151,15 @@ All onboarding, Settings and paywall legal controls must resolve from `ShellConf
 - Preserve safe-area insets and avoid device-model checks.
 - The feature canvas owns product content, not global navigation.
 
+## Interaction reliability and touchscreen gate
+
+- Treat every visible control as one full-surface target. Interactive elements must be at least 44×44 points, and a row that looks tappable must own the complete rectangular hit region with `contentShape(Rectangle())` where needed.
+- Build composite controls as one `Button` or one navigation control. Do not attach competing gestures to the label, icon, background and container; a single deliberate tap anywhere on the visible control must invoke exactly one action.
+- Give the parent control the accessibility role, label, identifier and enabled state. UI tests must interact with that control—not a child `Text` or `Image` that can conceal a partial hit target.
+- Purchase, restore, retry, save, destructive confirmation and navigation actions are single-flight. Disable incompatible actions while work is active and make the progress or disabled state visible.
+- A button is not validated merely because its label renders. Regression tests must cover left, center and right edge taps, exactly-once callbacks, disabled states, repeated taps, compact iPhone height, iPad width, VoiceOver and large Dynamic Type.
+- Keyboard, overlay, sheet, scroll and safe-area layers must not intercept an enabled control. When a tap defect is reported, inspect hit testing, gesture competition, focus dismissal and asynchronous state ownership before changing layout.
+
 ## Localization and accessibility
 
 - Keep all shell and product text in localization resources.
@@ -168,6 +179,9 @@ All onboarding, Settings and paywall legal controls must resolve from `ShellConf
 - Verify Dynamic Type, VoiceOver, RTL, compact iPhone height and iPad width.
 - Do not hard-code user-visible English in new Views.
 - Changing the selected language must update the Settings navigation title and visible rows immediately. Use stable localization keys or an explicitly locale-resolved title; do not rely on display-value-as-key strings that can leave a cached English navigation title.
+- Resolve static navigation titles from the active language controller and present the resolved string verbatim. Verify every visible header changes immediately without dismissing or rebuilding the screen.
+- Display locale-appropriate currency symbols in customer-facing fields. Persist ISO 4217 codes in the data layer, keep currencies separate unless the product explicitly converts them, and never mistake a display symbol for the stored currency identity.
+- Currency selectors must contain current circulating regional currencies only. Exclude withdrawn codes, funds/accounting units, precious-metal codes, testing codes and other non-consumer ISO entries; document and test the allow/exclude policy.
 - Button-backed Settings rows must use plain button styling with explicit primary titles and secondary subtitles so the global tint cannot recolor legal or support copy. Keep tint on icons and affordances only.
 - A derived app's Settings screen must contain zero template data. Replace or remove sample footer text, generic upgrade language, placeholder URLs, sample provider names and debug-only concepts from production presentation. A key that exists only in an unused shell catalog is not evidence that it is wired into the product.
 
@@ -179,18 +193,29 @@ The paywall is app code, not a reusable marketing draft. A release must replace 
 
 When execution is authorized, the release checks are:
 
+- Validation scripts must run on stock hosted macOS runners. Optional developer tools such as `rg` require a built-in fallback, and absence of the optional tool must never silently skip or weaken a release check.
 - `scripts/validate-shell.sh --release`
 - `xcodegen generate`
 - Xcode Release build and unit tests before archive/upload
 
 TestFlight requires an explicit manual workflow dispatch and the exact confirmation text. Its build number must be unique and monotonically safe relative to prior uploads; a UTC timestamp plus workflow run number is the shell default. Never upload or trigger a hosted run unless the user explicitly authorizes it.
 
-The Welding Wallet bridge is product-specific and must follow the app repository’s current business model. Its production-logic option is `subscription`: three active cylinders remain free, a verified monthly subscription unlocks unlimited active cylinders, and the archive gate rejects advertising frameworks and metadata. Do not preserve an obsolete ad-enabled bridge after the derived app removes ads.
+The Welding Wallet bridge is product-specific and must follow the app repository’s current business model. Its production-logic option is `subscription`: three active cylinders remain free, the verified annual product `com.gooduse.weldinggaswallet.pro.yearly` unlocks unlimited active cylinders, customer-facing price and period come from StoreKit, and the archive gate rejects advertising frameworks and metadata. Do not preserve obsolete monthly, one-time-purchase or ad-enabled bridge behavior.
 
 
 ## Mandatory commerce-surface rule
 
 Paywall, purchase, restore, subscription and win-back surfaces must contain no app logo, AppIcon, named image asset, custom brand mark or app-name hero. Generic SF Symbols may support comprehension, but they must not reproduce the app mark. This house rule is deliberately stricter than Apple's published in-app UI wording. When execution is authorized, run `scripts/check-commerce-branding.sh`; a failure blocks release. App Store promotional IAP and win-back media must separately follow Apple's rule that the promotional image cannot be the app icon or an app screenshot.
+
+## App Store review evidence and subscription metadata
+
+- App Store Connect must reference the latest approved production-logic build. Replacing the selected build must never delete an older TestFlight build, and screenshot/demo fixtures must not be submitted as production.
+- Submit a first auto-renewable subscription with the app version that implements it. Before submission, reconcile product ID, duration, base storefront price, geographic prices, localized display metadata, entitlement limits, purchase path, restore path, expiry behavior and legal links across code, StoreKit configuration, review notes and the listing.
+- Keep private reviewer evidence separate from public marketing media. Put reviewer screenshots in the subscription’s Review Information field and full usage demonstrations in the app version’s App Review Information attachment. Do not place either in the optional public promotional-purchase image or an App Preview slot unless it independently satisfies that public asset’s purpose and specifications.
+- The optional public subscription/promotional-purchase image must remain empty unless a distinct campaign asset is deliberately approved. It must never be the AppIcon or an ordinary app screenshot.
+- Apple’s purchase-confirmation sheet is system UI and may render the AppIcon. That system-rendered icon does not violate the no-logo rule for developer-controlled commerce screens; document the distinction in review notes when it could prevent reviewer confusion.
+- Review notes must be current, concise and testable: identify the exact build and product, explain how to reach the paywall, state what free and paid users receive, describe restore/management and lapse behavior, and disclose material data, account, advertising and physical-goods boundaries.
+- Attaching a build, screenshot or reviewer video is not submission. Stop before Add for Review or Submit unless the user explicitly authorizes that separate external action.
 
 ## Ad-free and advertising products
 
