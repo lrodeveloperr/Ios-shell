@@ -1,0 +1,28 @@
+name: HVAC Restock TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type UPLOAD HVAC RESTOCK to confirm upload
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hvac-restock-testflight-bridge
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    uses: lrodeveloperr/HVA-restock-ios/.github/workflows/testflight.yml@main
+    with:
+      confirmation: ${{ inputs.confirmation }}
+    secrets:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+      IOS_DISTRIBUTION_CERTIFICATE_P12: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12 }}
+      IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
