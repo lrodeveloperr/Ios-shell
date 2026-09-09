@@ -1,6 +1,6 @@
 # Derived-app release wiring checklist
 
-Use this checklist for every app created from the shell. It records the failure modes found during the Welding Gas Wallet production-test audit and the upstream correction that prevents recurrence. A checked box requires evidence from the derived source, final archive, App Store Connect, or a device test.
+Use this checklist for every app created from the shell. It records the failure modes found during the Welding Gas Wallet and PressBench production-test audits and the upstream correction that prevents recurrence. A checked box requires evidence from the derived source, final archive, App Store Connect, or a device test.
 
 ## Regression map
 
@@ -14,6 +14,12 @@ Use this checklist for every app created from the shell. It records the failure 
 | Unsupported/stale locale persists | Stored selections and device language mappings were not checked against the current shipped list | `LanguageController` rejects stale values and resolves only enabled locales | Relaunch with a removed locale and test unmatched device languages |
 | Partly translated locale is advertised | Shared shell terms were mistaken for a complete app translation | Exact key parity, duplicate-key rejection and the cultural checklist gate every enabled locale | Product, validation, notification, accessibility and commerce copy reviewed |
 | Backup bypasses a free/paid limit | Imported data was trusted and committed without applying current domain constraints | Restore discards entitlement and applies the same locked/read-only policy as local paid-era data; unsupported safe states fail atomically | Malformed data fails without mutation; valid paid-era data stays preserved but does not unlock paid operations |
+| Older backup or reinstall replenishes free runs | The usage count lived only in deletable preferences or was overwritten by imported history | Keep a device-only Keychain high-water ledger and reconcile `min(limit, max(device, imported, restored outcomes))` after a successful atomic restore | Delete, reinstall, empty/older import and repeated import never increase remaining uses; replacement-device import carries prior usage |
+| Manual backup requires Apple sign-in | Identity and cloud capabilities were added even though the user only needed an on-demand file | Prefer native Files export/import; the user chooses iCloud Drive, On My iPhone/iPad or another provider without an app account | Fresh install reaches Create Backup and Import Backup directly; signed archive has no unused Apple sign-in/iCloud entitlement |
+| Backup button appears inert | Success was reported when preparation began, or exporter/importer completion was ignored | Drive progress, cancellation, failure and success from native picker completion callbacks | UI test proves completion/cancel/error states and prevents duplicate taps while working |
+| Restore looks like deletion or returns to onboarding | Replacement had no preview, confirmation or self-contained Settings flow | Show record/date/count/free-use preview, then a destructive replacement confirmation; never route restore through authentication/onboarding | Valid import previews consequences, cancel preserves data and confirm replaces atomically |
+| Rollback or cloud-delete control does nothing | Marginal controls were exposed without durable history/provider semantics | Omit backup history, merge, rollback, sign-out and cloud-delete unless their complete state machine exists | Every visible backup control has an end-to-end success, cancel and failure test |
+| Release UI test bypasses or breaks Keychain | Tests disabled code signing or compiled reset/StoreKit fixtures only under `DEBUG` while executing `Release` | Ad-hoc sign the simulator test app and compile fixtures under a dedicated test-only condition excluded from archives | Release UI tests exercise Keychain; signed production executable contains no fixture condition or reset hook |
 | Test ads leak into a storefront binary | Demo IDs were stored as ordinary release configuration | Demo IDs are allowed only through an explicitly named internal test workflow and must be asserted in that archive | Storefront release gate rejects Google demo IDs; production-test archive identifies exact demo IDs |
 | Upload build number is rejected | `GITHUB_RUN_NUMBER` can be lower than a previously uploaded timestamp build | Upload workflows use a UTC timestamp plus run number | Final archive `CFBundleVersion` is unique and greater than prior uploads |
 | Hosted validation cannot start | The validator's executable bit was lost while publishing a content update | The shell tracks the executable mode and self-checks it | Fresh GitHub checkout executes `scripts/validate-shell.sh` directly |
@@ -34,6 +40,10 @@ Use this checklist for every app created from the shell. It records the failure 
 - [ ] Every mutation path enforces the same entitlement or domain limit, including add, duplicate, import, restore, migration, deep link and background processing.
 - [ ] An operation opened while entitled re-checks access when it commits; expiry cannot be bypassed by leaving a form open.
 - [ ] Delete/Undo and lifecycle changes cannot manufacture another free managed slot.
+- [ ] Backup restore reconciles a bounded monotonic usage high-water mark from device usage, imported usage and restored successful outcomes; it never lowers usage or grants a new free action.
+- [ ] StoreKit entitlement, receipts and cached paid-access flags are excluded from backup; Restore Purchases remains an independent user-initiated StoreKit action.
+- [ ] Manual native Files backup is reachable without authentication, brackets security-scoped import access, validates before mutation and reports success only after picker completion.
+- [ ] Unsupported backup history, merge, rollback, sign-out and cloud-delete controls are absent.
 - [ ] Cancellation, paid expiration, Billing Grace Period, billing retry, recovery, refund/revocation and offline expiry each have an explicit tested result.
 - [ ] Subscription Settings follows the complete state matrix: checking is neutral; absent/expired/revoked shows Upgrade only; active/cancelled-paid-through/grace/offline-valid shows truthful status; billing retry routes to recovery; Manage is never shown without a relevant state.
 - [ ] StoreKit product IDs and types exactly match App Store Connect. Customer price and billing period come only from `Product`.
@@ -43,7 +53,7 @@ Use this checklist for every app created from the shell. It records the failure 
 - [ ] Production upload workflows cannot select a screenshot/free fixture profile; screenshot uploads use a separately named workflow and confirmation phrase.
 - [ ] `ITSAppUsesNonExemptEncryption` is verified in the archive and is still truthful for the derived code.
 - [ ] Required-reason declarations match source use; the shell's app-only `UserDefaults` access keeps reason `CA92.1`, and every new API category is reviewed rather than copied blindly.
-- [ ] Unit tests run in the upload workflow before signing and upload.
+- [ ] Release unit/UI tests run before release credentials, signing and upload. Keychain integration tests use an ad-hoc-signed simulator app; any Release test fixtures use a dedicated compilation condition excluded from the archive.
 
 ## Advertising
 

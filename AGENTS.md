@@ -40,6 +40,7 @@ Read this file before changing code.
 | UI regression matrix | `docs/UI_REGRESSION_MATRIX.md` |
 | Shell version and migrations | `Shell/App/ShellContract.swift`, `SHELL_CHANGELOG.md`, `MIGRATIONS.md` |
 | Optional native backup seam | `Shell/Services/NativeBackup.swift` |
+| Backup, restore and usage-cap integrity | `docs/BACKUP_AND_USAGE_INTEGRITY.md` |
 | Shared 31-locale terms | `Shell/Resources/gooduse-common-localization-v1.json` |
 | Localization release checklist | `docs/LOCALIZATION_RELEASE_CHECKLIST.md` |
 | Derived-app release wiring | `docs/DERIVED_APP_RELEASE_WIRING.md` |
@@ -131,8 +132,8 @@ Usage-cap, one-time-unlock, ad-free subscription and free profiles do not show t
 - Billing-retry UI routes to Apple subscription management instead of offering a duplicate purchase. Subscription apps expose truthful current status and Apple's management surface only when the verified customer state makes that action relevant.
 - Do not render a fake inactive subscription card. Settings shows a neutral checking row while StoreKit resolves; hides subscription status and Manage Subscription when the verified state is absent, expired or revoked; and offers management only for active, grace, billing-retry or still-valid offline-cached states. Icons must reflect the state instead of showing a success seal for every condition.
 - Subscription purchase UI uses StoreKit's localized display name, full price, currency, and period. Never substitute a hard-coded product name or price for App Store metadata.
-- Keychain usage records are durable, bounded and deduplicated.
-- Shell Lab and entitlement overrides must remain inside `#if DEBUG`.
+- Keychain usage records are durable, bounded and deduplicated. A production usage-cap store must treat only `errSecItemNotFound` as empty; corruption or access failure fails closed instead of resetting the allowance.
+- Shell Lab and entitlement overrides must remain inside `#if DEBUG`. Release UI-test fixtures require a dedicated test-only compilation condition that is passed to the test command and provably absent from the archive.
 
 ## Onboarding and legal
 
@@ -227,6 +228,6 @@ Only an intentionally ad-supported app uses `ShellAds`, `Info-Ads.plist`, and an
 
 - Treat `docs/APPLE_STORE_COMPLIANCE.md` as a release gate, not a guarantee. Re-open every official Apple source and mark each current numbered guideline subsection PASS or N/A with evidence.
 - `gooduse-common-localization-v1.json` is the reviewed 31-locale shared terminology contract copied from the Android shell. It does not authorize advertising a locale until all app, legal, product and store text is complete.
-- Backup is disabled by default and has no entitlement. Enable it only with an app-owned `NativeBackupProviding` implementation, reviewed privacy disclosures, versioned serialization and recoverable conflict handling. Decode untrusted backups into temporary state, validate IDs/references/values, discard any entitlement, and commit atomically. When the product can safely represent paid-era over-limit data as locked/read-only, preserve it and apply the current policy after restore; otherwise reject before mutation. Never partially restore or unlock paid access from backup metadata.
+- Backup is disabled by default and never carries paid entitlement. For ordinary on-demand local-first backup, prefer native Files export/import with no account, Sign in with Apple or iCloud entitlement; add provider-managed cloud history only for a genuine product requirement. Follow `docs/BACKUP_AND_USAGE_INTEGRITY.md`: validate untrusted input in temporary state, preview replacement, preserve the verified StoreKit entitlement, commit atomically and reconcile a capped usage high-water mark as `max(device, imported, restored outcomes)`. Never partially restore, lower prior usage, replenish free actions or unlock paid access from backup metadata. Remove rollback, merge, cloud-delete and backup-history controls unless their complete state and failure paths are implemented and tested.
 - Complete `docs/DERIVED_APP_RELEASE_WIRING.md` before every TestFlight production-logic build and storefront submission. Code, final archive, policies and App Store Connect metadata must describe the same product.
 - Record the adopted `ShellContract.currentVersion`. A breaking adoption requires ordered, idempotent `ShellMigration` steps; never erase data or silently skip a missing step.
