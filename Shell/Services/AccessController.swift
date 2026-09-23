@@ -41,7 +41,7 @@ final class AccessController {
         hasFreeActionRemaining: Bool
     ) -> AccessDecision {
         switch mode {
-        case .free, .ads, .adsWithRemovePurchase, .adsWithSubscription:
+        case .free, .ads, .adsWithRemovePurchase, .adsWithSubscription, .freemiumSubscription:
             .allowed
         case .oneTimeUnlock, .subscription:
             if isEntitled { .allowed }

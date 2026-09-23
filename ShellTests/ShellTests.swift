@@ -3,8 +3,8 @@ import XCTest
 
 @MainActor
 final class ShellTests: XCTestCase {
-    func testAllEightMonetizationModesResolveAccess() {
-        for mode in [MonetizationMode.free, .ads, .adsWithRemovePurchase, .adsWithSubscription] {
+    func testAllNineMonetizationModesResolveAccess() {
+        for mode in [MonetizationMode.free, .ads, .adsWithRemovePurchase, .adsWithSubscription, .freemiumSubscription] {
             XCTAssertEqual(resolve(mode, entitled: false, checking: true, free: false), .allowed)
         }
         for mode in [MonetizationMode.oneTimeUnlock, .subscription] {
@@ -123,6 +123,11 @@ final class ShellTests: XCTestCase {
         XCTAssertFalse(configuration(.oneTimeUnlock).includesSubscription)
         XCTAssertTrue(configuration(.subscription).includesSubscription)
         XCTAssertTrue(configuration(.adsWithSubscription).includesSubscription)
+        let cnc = MonetizationConfiguration(mode: .freemiumSubscription, freeSuccessfulActions: 0,
+            lifetimeProductID: "", subscriptionProductID: "monthly", additionalSubscriptionProductID: "annual")
+        XCTAssertEqual(cnc.productIDs, ["monthly", "annual"])
+        XCTAssertEqual(cnc.subscriptionProductIDs, ["monthly", "annual"])
+        XCTAssertEqual(resolve(.freemiumSubscription, entitled: false, checking: false, free: false), .allowed)
     }
 
     func testTemplateNavigationAndLanguagesAreBounded() {
@@ -138,7 +143,7 @@ final class ShellTests: XCTestCase {
         defaults.set("fr", forKey: "shell.language")
         let language = LanguageController(defaults: defaults, preferredLanguages: ["es-MX"])
         XCTAssertEqual(language.selection, "system")
-        XCTAssertEqual(LanguageController.closestSupported(to: "es-MX"), "es")
+        XCTAssertEqual(LanguageController.closestSupported(to: "es-MX"), "en")
         XCTAssertEqual(LanguageController.closestSupported(to: "fr-CA"), "en")
         XCTAssertTrue(SupportedLocaleResolver.isRightToLeft("ar-SA"))
         XCTAssertTrue(SupportedLocaleResolver.isRightToLeft("ur_PK"))

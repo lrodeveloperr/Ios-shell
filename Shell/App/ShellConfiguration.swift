@@ -1,8 +1,8 @@
 import SwiftUI
 
 enum ShellConfiguration {
-    static let appName = "Shell"
-    static let tint = Color.indigo
+    static let appName = "CNC Repeat Job Bench"
+    static let tint = Color(red: 0.071, green: 0.396, blue: 0.659)
     static let supportEmail = "support@example.com"
 
     static let legal = LegalConfiguration(
@@ -13,13 +13,14 @@ enum ShellConfiguration {
 
     /// Set to nil when the product does not have a genuine onboarding need.
     /// Published legal links alone do not require a blocking acceptance screen.
-    static let onboarding: OnboardingProfile? = .legalOnly
+    static let onboarding: OnboardingProfile? = nil
 
     static let monetization = MonetizationConfiguration(
-        mode: .usageCapWithSubscription,
-        freeSuccessfulActions: 5,
-        lifetimeProductID: "shell.pro.lifetime",
-        subscriptionProductID: "shell.pro.monthly"
+        mode: .freemiumSubscription,
+        freeSuccessfulActions: 0,
+        lifetimeProductID: "",
+        subscriptionProductID: "com.goodusestudios.cncrepeatjobbench.pro.monthly",
+        additionalSubscriptionProductID: "com.goodusestudios.cncrepeatjobbench.pro.annual"
     )
 
     static let advertising = AdvertisingConfiguration(
@@ -35,9 +36,10 @@ enum ShellConfiguration {
     static let migrations: [ShellMigration] = []
 
     static let destinations: [ShellDestination] = [
-        .init(id: "home", titleKey: "destination.home", symbol: "house"),
-        .init(id: "library", titleKey: "destination.library", symbol: "tray.full"),
-        .init(id: "activity", titleKey: "destination.activity", symbol: "chart.xyaxis.line"),
+        .init(id: "jobs", titleKey: "destination.jobs", symbol: "tray.full"),
+        .init(id: "run", titleKey: "destination.run", symbol: "gearshape.2"),
+        .init(id: "setups", titleKey: "destination.setups", symbol: "wrench.adjustable"),
+        .init(id: "records", titleKey: "destination.records", symbol: "doc.text"),
     ]
 
     /// Only locales with complete app text belong here. The 31-locale shared
@@ -45,7 +47,6 @@ enum ShellConfiguration {
     static let supportedLanguages: [AppLanguage] = [
         .init(id: "system", displayName: "Follow system"),
         .init(id: "en", displayName: "English"),
-        .init(id: "es", displayName: "Español"),
     ]
 }
 
@@ -74,6 +75,16 @@ struct MonetizationConfiguration: Sendable {
     let freeSuccessfulActions: Int
     let lifetimeProductID: String
     let subscriptionProductID: String
+    let additionalSubscriptionProductID: String?
+
+    init(mode: MonetizationMode, freeSuccessfulActions: Int, lifetimeProductID: String,
+         subscriptionProductID: String, additionalSubscriptionProductID: String? = nil) {
+        self.mode = mode
+        self.freeSuccessfulActions = freeSuccessfulActions
+        self.lifetimeProductID = lifetimeProductID
+        self.subscriptionProductID = subscriptionProductID
+        self.additionalSubscriptionProductID = additionalSubscriptionProductID
+    }
 
     var productIDs: Set<String> {
         switch mode {
@@ -81,14 +92,21 @@ struct MonetizationConfiguration: Sendable {
             [lifetimeProductID]
         case .adsWithSubscription, .subscription, .usageCapWithSubscription:
             [subscriptionProductID]
+        case .freemiumSubscription:
+            Set([subscriptionProductID] + (additionalSubscriptionProductID.map { [$0] } ?? []))
         case .free, .ads:
             []
         }
     }
 
+    var subscriptionProductIDs: Set<String> {
+        guard includesSubscription else { return [] }
+        return Set([subscriptionProductID] + (additionalSubscriptionProductID.map { [$0] } ?? []))
+    }
+
     var includesAdvertising: Bool { mode == .ads || mode == .adsWithRemovePurchase || mode == .adsWithSubscription }
     var includesPurchase: Bool { !productIDs.isEmpty }
-    var includesSubscription: Bool { mode == .adsWithSubscription || mode == .subscription || mode == .usageCapWithSubscription }
+    var includesSubscription: Bool { mode == .adsWithSubscription || mode == .subscription || mode == .usageCapWithSubscription || mode == .freemiumSubscription }
 }
 
 struct ShellDestination: Hashable, Identifiable, Sendable {
@@ -114,6 +132,7 @@ enum MonetizationMode: String, CaseIterable, Identifiable, Sendable {
     case subscription
     case usageCapWithOneTimeUnlock
     case usageCapWithSubscription
+    case freemiumSubscription
 
     var id: Self { self }
     var title: String {
@@ -126,6 +145,7 @@ enum MonetizationMode: String, CaseIterable, Identifiable, Sendable {
         case .subscription: "Subscription"
         case .usageCapWithOneTimeUnlock: "Usage cap + one-time unlock"
         case .usageCapWithSubscription: "Usage cap + subscription"
+        case .freemiumSubscription: "Product limits + subscription"
         }
     }
 }

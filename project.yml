@@ -1,4 +1,4 @@
-name: Shell
+name: CNCRepeatJobBench
 options:
   bundleIdPrefix: com.goodusestudios
   deploymentTarget:
@@ -6,6 +6,8 @@ options:
   xcodeVersion: "16.0"
   createIntermediateGroups: true
 packages:
+  CNCRepeatJobEngine:
+    path: Vendor/CNCRepeatJobEngine
   GoogleMobileAds:
     url: https://github.com/googleads/swift-package-manager-google-mobile-ads.git
     from: 13.0.0
@@ -20,7 +22,7 @@ targetTemplates:
           - Resources/Info-Ads.plist
     settings:
       base:
-        PRODUCT_NAME: Shell
+        PRODUCT_NAME: CNCRepeatJobBench
         MARKETING_VERSION: 1.0
         CURRENT_PROJECT_VERSION: 1
         SWIFT_VERSION: 6.0
@@ -32,19 +34,22 @@ targets:
   # Info.plist contains no GAD or SKAdNetwork keys.
   Shell:
     templates: [ShellApplication]
+    dependencies:
+      - package: CNCRepeatJobEngine
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.goodusestudios.shelllab
+        PRODUCT_BUNDLE_IDENTIFIER: com.goodusestudios.cncrepeatjobbench
         INFOPLIST_FILE: Shell/Resources/Info.plist
   # Select this target only for a reviewed ad-supported derived app.
   ShellAds:
     templates: [ShellApplication]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.goodusestudios.shelllab.ads
+        PRODUCT_BUNDLE_IDENTIFIER: com.goodusestudios.cncrepeatjobbench.ads
         INFOPLIST_FILE: Shell/Resources/Info-Ads.plist
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) ADS_ENABLED"
     dependencies:
+      - package: CNCRepeatJobEngine
       - package: GoogleMobileAds
         product: GoogleMobileAds
   ShellTests:

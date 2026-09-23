@@ -5,21 +5,15 @@ final class ShellUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testLegalOnboardingHasOneExplicitGate() {
+    func testLaunchShowsFourRealWorkAreas() {
         let app = XCUIApplication()
-        app.launchArguments += [
-            "-AppleLanguages", "(en)",
-            "-shell.onboarding.complete", "NO",
-            "-shell.legal.acceptedVersion", "",
-        ]
         app.launch()
-
-        let acceptance = app.buttons["shell.onboarding.accept"]
-        let primary = app.buttons["shell.onboarding.primary"]
-        XCTAssertTrue(acceptance.waitForExistence(timeout: 5))
-        XCTAssertFalse(primary.isEnabled)
-        acceptance.tap()
-        XCTAssertTrue(primary.isEnabled)
+        let tabs = app.tabBars.firstMatch.buttons
+        XCTAssertEqual(tabs.count, 4)
+        for title in ["Jobs", "Run", "Setups", "Records"] {
+            XCTAssertTrue(tabs[title].exists)
+        }
+        XCTAssertTrue(app.buttons["Start repeat job"].exists)
     }
 
     func testPaywallExposesPurchaseAndRestoreControls() {
@@ -57,19 +51,14 @@ final class ShellUITests: XCTestCase {
         }
     }
 
-    /// Run this same suite through the documented destination matrix. The source
-    /// remains device-agnostic; CI destinations select compact iPhone and iPad.
-    func testPrimaryControlsMeetMinimumHitTarget() {
+    func testStartJobIsReachableAndTouchSized() {
         let app = XCUIApplication()
-        app.launchArguments += [
-            "-AppleLanguages", "(en)",
-            "-shell.onboarding.complete", "NO",
-            "-shell.legal.acceptedVersion", "",
-        ]
         app.launch()
-        let frame = app.buttons["shell.onboarding.accept"].frame
-        XCTAssertGreaterThanOrEqual(frame.height, 44)
-        XCTAssertGreaterThanOrEqual(frame.width, 44)
+        let start = app.buttons["Start repeat job"]
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        XCTAssertGreaterThanOrEqual(start.frame.height, 44)
+        start.tap()
+        XCTAssertTrue(app.navigationBars["Start repeat job"].waitForExistence(timeout: 5))
     }
 
     private func launchPastOnboarding() -> XCUIApplication {

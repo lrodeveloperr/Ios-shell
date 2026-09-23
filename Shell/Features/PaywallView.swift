@@ -37,29 +37,28 @@ struct PaywallView: View {
                             .buttonStyle(.borderedProminent)
                             .frame(maxWidth: .infinity)
                     }
-                } else if let product = model.access.purchases.primaryProduct {
-                    Button {
-                        Task { await model.access.purchases.purchasePrimary() }
-                    } label: {
-                        VStack(spacing: 2) {
-                            Text(product.displayName)
-                                .font(.headline)
-                            Group {
-                                if let subscription = product.subscription {
-                                    Text(product.displayPrice) + Text(" · ") + Text(periodKey(subscription.subscriptionPeriod))
-                                } else {
-                                    Text(product.displayPrice)
-                                }
+                } else if !model.access.purchases.subscriptionProducts.isEmpty {
+                    ForEach(model.access.purchases.subscriptionProducts, id: \.id) { product in
+                        Button {
+                            Task { await model.access.purchases.purchase(productID: product.id) }
+                        } label: {
+                            VStack(spacing: 2) {
+                                Text(product.displayName).font(.headline)
+                                Group {
+                                    if let subscription = product.subscription {
+                                        Text(product.displayPrice) + Text(" · ") + Text(periodKey(subscription.subscriptionPeriod))
+                                    } else {
+                                        Text(product.displayPrice)
+                                    }
+                                }.font(.title2.bold())
                             }
-                            .font(.title2.bold())
-                            Text("paywall.purchase")
-                                .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
                         }
-                        .frame(maxWidth: .infinity)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .disabled(model.access.purchases.isPurchasing || model.access.purchases.isRestoring)
+                        .accessibilityIdentifier("shell.paywall.purchase.\(product.id)")
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .accessibilityIdentifier("shell.paywall.purchase")
                 } else if model.access.purchases.isLoadingProducts {
                     ProgressView("paywall.loadingProduct").frame(maxWidth: .infinity)
                 } else {
@@ -80,6 +79,7 @@ struct PaywallView: View {
 
                 Button("paywall.restore") { Task { await model.access.purchases.restore() } }
                     .frame(maxWidth: .infinity)
+                    .disabled(model.access.purchases.isRestoring || model.access.purchases.isPurchasing)
                     .accessibilityIdentifier("shell.paywall.restore")
 
                 HStack {

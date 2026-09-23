@@ -48,6 +48,8 @@ final class PurchaseService {
     private(set) var entitlementState: EntitlementState = .checking
     private(set) var subscriptionCondition: SubscriptionCondition
     private(set) var isLoadingProducts = false
+    private(set) var isPurchasing = false
+    private(set) var isRestoring = false
     var showingError = false
     var message = ""
 
@@ -103,7 +105,7 @@ final class PurchaseService {
         switch configuration.mode {
         case .adsWithRemovePurchase, .oneTimeUnlock, .usageCapWithOneTimeUnlock:
             desiredID = configuration.lifetimeProductID
-        case .adsWithSubscription, .subscription, .usageCapWithSubscription:
+        case .adsWithSubscription, .subscription, .usageCapWithSubscription, .freemiumSubscription:
             desiredID = configuration.subscriptionProductID
         case .free, .ads:
             return nil
@@ -111,7 +113,16 @@ final class PurchaseService {
         return products.first { $0.id == desiredID }
     }
 
+    var subscriptionProducts: [Product] {
+        let ids = configuration.subscriptionProductIDs
+        return products.filter { ids.contains($0.id) }.sorted {
+            $0.id == configuration.subscriptionProductID ||
+                ($1.id != configuration.subscriptionProductID && $0.id < $1.id)
+        }
+    }
+
     func start() async {
+        guard !isLoadingProducts else { return }
         guard configuration.includesPurchase else {
             entitlementState = .notEntitled
             return
@@ -120,7 +131,15 @@ final class PurchaseService {
         isLoadingProducts = true
         defer { isLoadingProducts = false }
         do {
-            products = try await Product.products(for: configuration.productIDs)
+            let loaded = try await Product.products(for: configuration.productIDs)
+            guard Set(loaded.map(\.id)) == configuration.productIDs else {
+                products = []
+                message = AppLocalization.string("purchase.productUnavailable", locale: AppLocalization.selectedLocale)
+                showingError = true
+                await refreshEntitlements()
+                return
+            }
+            products = loaded
         } catch {
             present(error)
         }
@@ -133,6 +152,14 @@ final class PurchaseService {
             showingError = true
             return
         }
+        await purchase(productID: product.id)
+    }
+
+    func purchase(productID: String) async {
+        guard !isPurchasing, !isRestoring, configuration.productIDs.contains(productID),
+              let product = products.first(where: { $0.id == productID }) else { return }
+        isPurchasing = true
+        defer { isPurchasing = false }
         do {
             switch try await product.purchase() {
             case let .success(verification):
@@ -153,6 +180,9 @@ final class PurchaseService {
     }
 
     func restore() async {
+        guard !isRestoring, !isPurchasing else { return }
+        isRestoring = true
+        defer { isRestoring = false }
         do {
             try await AppStore.sync()
             await refreshEntitlements()
@@ -187,7 +217,7 @@ final class PurchaseService {
                   configuration.productIDs.contains(transaction.productID),
                   transaction.revocationDate == nil else { continue }
 
-            if transaction.productID == configuration.subscriptionProductID {
+            if configuration.subscriptionProductIDs.contains(transaction.productID) {
                 if subscriptionResult.isAuthoritative { continue }
                 guard let expirationDate = transaction.expirationDate, expirationDate > now() else { continue }
                 productIDs.insert(transaction.productID)
@@ -270,76 +300,57 @@ final class PurchaseService {
     }
 
     private func loadSubscriptionStatus() async -> SubscriptionStatusResult {
-        guard configuration.includesSubscription,
-              let product = products.first(where: { $0.id == configuration.subscriptionProductID }),
-              let subscription = product.subscription else {
+        guard configuration.includesSubscription, !subscriptionProducts.isEmpty else {
             return SubscriptionStatusResult(evaluation: nil, isAuthoritative: false)
         }
-
-        do {
-            let statuses = try await subscription.status
-            var best: VerifiedSubscriptionEvaluation?
-            var verifiedRelevantStatusCount = 0
+        var best: VerifiedSubscriptionEvaluation?
+        var relevantVerified = 0
+        var allEmpty = true
+        for product in subscriptionProducts {
+            guard let subscription = product.subscription else { continue }
+            let statuses: [Product.SubscriptionInfo.Status]
+            do { statuses = try await subscription.status }
+            catch { return SubscriptionStatusResult(evaluation: nil, isAuthoritative: false) }
+            if !statuses.isEmpty { allEmpty = false }
             for status in statuses {
                 guard let transaction = try? verified(status.transaction),
-                      let renewalInfo = try? verified(status.renewalInfo),
-                      configuration.productIDs.contains(transaction.productID) else { continue }
-                verifiedRelevantStatusCount += 1
-
+                      let renewal = try? verified(status.renewalInfo),
+                      configuration.subscriptionProductIDs.contains(transaction.productID) else { continue }
+                relevantVerified += 1
                 let condition: SubscriptionCondition
                 if transaction.revocationDate != nil {
                     condition = .revoked
                 } else {
                     switch status.state {
                     case .subscribed:
-                        guard let expiration = transaction.expirationDate else { continue }
-                        condition = .subscribed(willAutoRenew: renewalInfo.willAutoRenew, expirationDate: expiration)
+                        guard let expiry = transaction.expirationDate else { continue }
+                        condition = .subscribed(willAutoRenew: renewal.willAutoRenew, expirationDate: expiry)
                     case .inGracePeriod:
-                        guard let expiration = renewalInfo.gracePeriodExpirationDate else { continue }
-                        condition = .gracePeriod(expirationDate: expiration)
-                    case .inBillingRetryPeriod:
-                        condition = .billingRetry
-                    case .expired:
-                        condition = .expired
-                    case .revoked:
-                        condition = .revoked
-                    default:
-                        continue
+                        guard let expiry = renewal.gracePeriodExpirationDate else { continue }
+                        condition = .gracePeriod(expirationDate: expiry)
+                    case .inBillingRetryPeriod: condition = .billingRetry
+                    case .expired: condition = .expired
+                    case .revoked: condition = .revoked
+                    default: continue
                     }
                 }
-
-                let resolvedAccess = SubscriptionAccessEvaluation.resolve(condition: condition, at: now())
-                let effectiveCondition: SubscriptionCondition
-                if !resolvedAccess.grantsAccess {
+                let access = SubscriptionAccessEvaluation.resolve(condition: condition, at: now())
+                let effective: SubscriptionCondition = access.grantsAccess ? condition : {
                     switch condition {
-                    case .subscribed, .gracePeriod, .offlineCached:
-                        effectiveCondition = .expired
-                    default:
-                        effectiveCondition = condition
+                    case .subscribed, .gracePeriod, .offlineCached: return .expired
+                    default: return condition
                     }
-                } else {
-                    effectiveCondition = condition
-                }
-                let candidate = VerifiedSubscriptionEvaluation(
-                    productID: transaction.productID,
-                    condition: effectiveCondition,
-                    access: resolvedAccess
-                )
-                if best == nil || (!best!.access.grantsAccess && candidate.access.grantsAccess) ||
-                    ((candidate.access.effectiveExpiration ?? .distantPast) > (best!.access.effectiveExpiration ?? .distantPast)) {
+                }()
+                let candidate = VerifiedSubscriptionEvaluation(productID: transaction.productID,
+                                                               condition: effective, access: access)
+                if best == nil || (!best!.access.grantsAccess && access.grantsAccess) ||
+                   (access.effectiveExpiration ?? .distantPast) > (best!.access.effectiveExpiration ?? .distantPast) {
                     best = candidate
                 }
             }
-            // No statuses is an authoritative "not subscribed" result. Returned
-            // but unverified statuses are not: keep only a still-valid local cache
-            // until StoreKit can provide a verified answer.
-            return SubscriptionStatusResult(
-                evaluation: best,
-                isAuthoritative: statuses.isEmpty || verifiedRelevantStatusCount > 0
-            )
-        } catch {
-            return SubscriptionStatusResult(evaluation: nil, isAuthoritative: false)
         }
+        return SubscriptionStatusResult(evaluation: best,
+                                        isAuthoritative: allEmpty || relevantVerified > 0)
     }
 
     private func scheduleEntitlementRefresh(at expiration: Date?) {
