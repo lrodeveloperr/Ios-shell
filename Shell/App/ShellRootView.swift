@@ -5,6 +5,7 @@ struct ShellRootView: View {
     private let featureProvider: any FeatureCanvasProviding
     @State private var model: ShellModel
     @State private var legalConsent: LegalConsentStore
+    @State private var launchCompleted = false
 
     init(
         featureProvider: any FeatureCanvasProviding,
@@ -17,6 +18,10 @@ struct ShellRootView: View {
     }
 
     var body: some View {
+        featureProvider.decorateRoot(AnyView(content))
+    }
+
+    private var content: some View {
         Group {
             if let startupMessage = model.startupMessage {
                 ContentUnavailableView {
@@ -40,7 +45,7 @@ struct ShellRootView: View {
         .environment(\.locale, model.language.locale)
         .environment(\.layoutDirection, model.language.layoutDirection)
         .sheet(isPresented: $model.settingsPresented) {
-            NavigationStack { SettingsView(model: model) }
+            NavigationStack { SettingsView(model: model, featureProvider: featureProvider) }
                 .environment(model)
                 .environment(model.language)
                 .environment(\.locale, model.language.locale)
@@ -63,8 +68,15 @@ struct ShellRootView: View {
                 .environment(\.layoutDirection, model.language.layoutDirection)
         }
         .task {
-            await model.start()
+            let started = await model.start()
             if !requiresOnboarding { await model.prepareAdvertisingIfNeeded() }
+            if started && !launchCompleted {
+                launchCompleted = true
+                await featureProvider.didFinishLaunching(context: model.featureContext)
+            }
+        }
+        .onOpenURL { url in
+            featureProvider.handleOpenURL(url, context: model.featureContext)
         }
         .onChange(of: requiresOnboarding) { _, requiresPresentation in
             if !requiresPresentation { Task { await model.prepareAdvertisingIfNeeded() } }
@@ -75,7 +87,7 @@ struct ShellRootView: View {
             }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await model.access.purchases.refreshEntitlements() } }
+            if phase == .active { Task { await model.access.sceneDidBecomeActive() } }
         }
     }
 
@@ -92,7 +104,7 @@ struct ShellRootView: View {
                 ForEach(ShellConfiguration.destinations) { destination in
                     destinationStack(destination)
                     .tag(destination.id)
-                    .tabItem { Label(LocalizedStringKey(destination.titleKey), systemImage: destination.symbol) }
+                    .tabItem { Label(model.language.string(destination.titleKey), icon: destination.icon) }
                 }
             }
             .tabViewStyle(.sidebarAdaptable)
@@ -103,7 +115,7 @@ struct ShellRootView: View {
         NavigationStack {
             FeatureCanvasHost(destination: destination, provider: featureProvider)
                 .safeAreaInset(edge: .bottom, spacing: 0) { adBanner }
-                .navigationTitle(Text(LocalizedStringKey(destination.titleKey)))
+                .navigationTitle(model.language.string(destination.titleKey))
                 .shellSettingsToolbar()
         }
     }
@@ -119,6 +131,17 @@ struct ShellRootView: View {
                 .background(.bar)
                 .accessibilityLabel(Text("advertisement"))
                 .accessibilityIdentifier("shell.ad.slot")
+        }
+    }
+}
+
+private extension Label where Title == Text, Icon == Image {
+    /// One native `Label` for either an SF Symbol or a template asset, as the
+    /// iPhone tab bar requires.
+    init(_ title: String, icon: DestinationIcon) {
+        switch icon {
+        case let .system(name): self.init(title, systemImage: name)
+        case let .asset(name): self.init(title, image: name)
         }
     }
 }

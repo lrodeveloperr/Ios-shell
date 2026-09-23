@@ -33,10 +33,15 @@ protocol EntitlementCaching: Sendable {
 
 struct KeychainEntitlementCache: EntitlementCaching {
     let service: String
+    let accessGroup: String?
     let account = "verified-entitlements-v1"
 
-    init(service: String = Bundle.main.bundleIdentifier ?? "com.goodusestudios.shell") {
+    init(
+        service: String = Bundle.main.bundleIdentifier ?? "com.goodusestudios.shell",
+        accessGroup: String? = ShellConfiguration.keychainAccessGroup
+    ) {
         self.service = service
+        self.accessGroup = accessGroup
     }
 
     func load() -> EntitlementSnapshot? {
@@ -70,11 +75,13 @@ struct KeychainEntitlementCache: EntitlementCaching {
     }
 
     private var baseQuery: [String: Any] {
-        [
+        var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
         ]
+        if let accessGroup { query[kSecAttrAccessGroup as String] = accessGroup }
+        return query
     }
 }
 

@@ -1,3 +1,4 @@
+import SwiftUI
 import XCTest
 @testable import Shell
 
@@ -161,6 +162,127 @@ final class ShellTests: XCTestCase {
         }
     }
 
+    func testFreemiumModesAlwaysComposeTheCanvasAndLetTheProductEnforceLimits() {
+        for mode in [MonetizationMode.freemiumWithOneTimeUnlock, .freemiumWithSubscription] {
+            XCTAssertEqual(resolve(mode, entitled: false, checking: true, free: false), .allowed)
+            XCTAssertEqual(resolve(mode, entitled: false, checking: false, free: false), .allowed)
+            XCTAssertFalse(AccessController.resolveAdVisibility(mode: mode, isEntitled: false, isChecking: false))
+            XCTAssertFalse(configuration(mode).includesUsageCap)
+            XCTAssertFalse(configuration(mode).includesAdvertising)
+        }
+        XCTAssertEqual(configuration(.freemiumWithOneTimeUnlock).productIDs, ["lifetime"])
+        XCTAssertEqual(configuration(.freemiumWithSubscription).productIDs, ["monthly"])
+        XCTAssertTrue(configuration(.freemiumWithSubscription).includesSubscription)
+    }
+
+    func testOneTimeCacheIsRevokedByAnEmptyLocalEntitlementResult() {
+        // A refund or Apple Account switch leaves currentEntitlements empty; the
+        // Keychain snapshot must not keep a lifetime unlock alive.
+        XCTAssertFalse(OfflineCachePolicy.mayBridge(includesSubscription: false, subscriptionStatusIsAuthoritative: false))
+        // A verified "not subscribed" answer also revokes the cache.
+        XCTAssertFalse(OfflineCachePolicy.mayBridge(includesSubscription: true, subscriptionStatusIsAuthoritative: true))
+        // Only an unverifiable subscription status keeps a still-valid snapshot.
+        XCTAssertTrue(OfflineCachePolicy.mayBridge(includesSubscription: true, subscriptionStatusIsAuthoritative: false))
+    }
+
+    func testAdditionalSubscriptionProductsKeepConfiguredOrder() {
+        let multi = MonetizationConfiguration(
+            mode: .subscription,
+            freeSuccessfulActions: 0,
+            lifetimeProductID: "lifetime",
+            subscriptionProductID: "monthly",
+            additionalSubscriptionProductIDs: ["yearly", "monthly"]
+        )
+        XCTAssertEqual(multi.orderedProductIDs, ["monthly", "yearly"])
+        XCTAssertEqual(multi.productIDs, ["monthly", "yearly"])
+        XCTAssertFalse(multi.offersCodeRedemption)
+        XCTAssertEqual(configuration(.oneTimeUnlock).orderedProductIDs, ["lifetime"])
+    }
+
+    func testDefaultPaywallBenefitsOnlyClaimWhatTheModeGrants() {
+        XCTAssertEqual(configuration(.usageCapWithSubscription).defaultPaywallBenefitKeys, ["paywall.benefit.unlimited", "paywall.benefit.support"])
+        XCTAssertEqual(configuration(.adsWithRemovePurchase).defaultPaywallBenefitKeys, ["paywall.benefit.noAds", "paywall.benefit.support"])
+        XCTAssertEqual(configuration(.adsWithSubscription).defaultPaywallBenefitKeys, ["paywall.benefit.noAds", "paywall.benefit.support"])
+        XCTAssertFalse(configuration(.subscription).defaultPaywallBenefitKeys.contains("paywall.benefit.noAds"))
+    }
+
+    func testDailyUsageWindowResetsAtTheStartOfTheNextDay() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let clock = TestClock(Date(timeIntervalSince1970: 86_400 * 10 + 3_600))
+        let store = UserDefaultsUsageStore(defaults: makeDefaults(), key: "usage")
+        let ledger = UsageLedger(limit: 1, window: .day, store: store, calendar: calendar, now: { clock.date })
+        XCTAssertEqual(ledger.recordSuccessfulAction(id: "a"), .recorded(remaining: 0))
+        XCTAssertEqual(ledger.recordSuccessfulAction(id: "b"), .limitReached)
+        clock.date = clock.date.addingTimeInterval(86_400)
+        ledger.refresh()
+        XCTAssertEqual(ledger.remaining, 1)
+        XCTAssertEqual(ledger.recordSuccessfulAction(id: "b"), .recorded(remaining: 0))
+    }
+
+    func testVersionOneUsageRecordsStillCountTowardALifetimeLimit() {
+        let defaults = makeDefaults()
+        defaults.set(["legacy-1", "legacy-2"], forKey: "usage")
+        let ledger = UsageLedger(limit: 3, store: UserDefaultsUsageStore(defaults: defaults, key: "usage"))
+        XCTAssertEqual(ledger.successfulActionCount, 2)
+        XCTAssertEqual(ledger.recordSuccessfulAction(id: "legacy-1"), .duplicate(remaining: 1))
+    }
+
+    func testUnreadableUsageStorageIsNeverOverwrittenAndRecovers() {
+        let store = FlakyUsageStore()
+        let ledger = UsageLedger(limit: 2, store: store)
+        XCTAssertFalse(ledger.persistenceHealthy)
+        XCTAssertEqual(store.saveCount, 0, "Nothing may be written while existing usage is unreadable")
+        store.available = true
+        ledger.refresh()
+        XCTAssertTrue(ledger.persistenceHealthy)
+        XCTAssertEqual(ledger.remaining, 1)
+    }
+
+    func testCompatibleShellUpgradeNeedsNoStepButMajorUpgradeDoes() throws {
+        let defaults = makeDefaults()
+        defaults.set("2.0.0", forKey: ShellContract.storedVersionKey)
+        try ShellMigrationManager(defaults: defaults, currentVersion: "2.1.0").migrateIfNeeded(using: [])
+        XCTAssertEqual(defaults.string(forKey: ShellContract.storedVersionKey), "2.1.0")
+
+        XCTAssertThrowsError(try ShellMigrationManager(defaults: defaults, currentVersion: "3.0.0").migrateIfNeeded(using: []))
+        XCTAssertEqual(defaults.string(forKey: ShellContract.storedVersionKey), "2.1.0")
+
+        let applied = TestFlag()
+        try ShellMigrationManager(defaults: defaults, currentVersion: "3.0.0").migrateIfNeeded(using: [
+            ShellMigration(fromVersion: "2.1.0", toVersion: "3.0.0") { applied.value = true },
+        ])
+        XCTAssertTrue(applied.value)
+        XCTAssertEqual(defaults.string(forKey: ShellContract.storedVersionKey), "3.0.0")
+    }
+
+    func testLocalizedLegalDocumentsFallBackToTheDefaultURL() {
+        let english = URL(string: "https://example.test/privacy")!
+        let spanish = URL(string: "https://example.test/es/privacidad")!
+        let legal = LegalConfiguration(
+            version: "1",
+            privacyURL: english,
+            termsURL: URL(string: "https://example.test/terms")!,
+            localizedPrivacyURLs: ["es": spanish]
+        )
+        XCTAssertEqual(legal.privacyURL(forLanguage: "es"), spanish)
+        XCTAssertEqual(legal.privacyURL(forLanguage: "fr"), english)
+        XCTAssertEqual(legal.termsURL(forLanguage: "es"), legal.termsURL)
+    }
+
+    func testDestinationsAcceptSymbolOrAssetIcons() {
+        XCTAssertEqual(ShellDestination(id: "a", titleKey: "a", symbol: "house").icon, .system("house"))
+        XCTAssertEqual(ShellDestination(id: "b", titleKey: "b", image: "CylinderTab").icon, .asset("CylinderTab"))
+    }
+
+    func testExplicitLanguageSelectionResolvesItsOwnCatalogAndDirection() {
+        let defaults = makeDefaults()
+        defaults.set("es", forKey: "shell.language")
+        let language = LanguageController(defaults: defaults)
+        XCTAssertEqual(language.resolvedLanguageID, "es")
+        XCTAssertEqual(language.layoutDirection, .leftToRight)
+    }
+
     private func resolve(_ mode: MonetizationMode, entitled: Bool, checking: Bool, free: Bool) -> AccessDecision {
         AccessController.resolveDecision(mode: mode, isEntitled: entitled, isChecking: checking, hasFreeActionRemaining: free)
     }
@@ -171,5 +293,31 @@ final class ShellTests: XCTestCase {
 
     private func makeDefaults() -> UserDefaults {
         UserDefaults(suiteName: "ShellTests.\(UUID().uuidString)")!
+    }
+}
+
+private final class TestFlag: @unchecked Sendable {
+    var value = false
+}
+
+private final class TestClock: @unchecked Sendable {
+    var date: Date
+    init(_ date: Date) { self.date = date }
+}
+
+/// Storage that is unreadable (as before first unlock) until `available` is set.
+private final class FlakyUsageStore: UsagePersisting, @unchecked Sendable {
+    var available = false
+    var saveCount = 0
+    private var records = ["earlier": Date.distantPast]
+
+    func load() -> Set<String> { Set(records.keys) }
+    func save(_ actionIDs: Set<String>) throws { saveCount += 1 }
+
+    func loadRecords() -> UsageLoadResult { available ? .loaded(records) : .unavailable }
+    func saveRecords(_ records: [String: Date]) throws {
+        guard available else { throw UsageStoreError.status(-25308) }
+        saveCount += 1
+        self.records = records
     }
 }

@@ -5,24 +5,35 @@ options:
     iOS: "18.0"
   xcodeVersion: "16.0"
   createIntermediateGroups: true
+# Per-app identity (display name, bundle IDs, team, version) lives only in
+# Config/App.xcconfig. Do not add those settings here; target settings in this
+# file would silently override the xcconfig.
+fileGroups:
+  - Config
+  - StoreKit
 packages:
   GoogleMobileAds:
     url: https://github.com/googleads/swift-package-manager-google-mobile-ads.git
-    from: 13.0.0
+    # Pinned so every archive links the reviewed SDK. Raise deliberately and
+    # re-check the privacy manifest and UMP behavior when changing it.
+    exactVersion: 13.10.0
 targetTemplates:
   ShellApplication:
     type: application
     platform: iOS
+    configFiles:
+      Debug: Config/App.xcconfig
+      Release: Config/App.xcconfig
     sources:
       - path: Shell
         excludes:
           - Resources/Info.plist
           - Resources/Info-Ads.plist
+          # Shared terminology source for validation, not a runtime resource.
+          - Resources/gooduse-common-localization-v1.json
     settings:
       base:
         PRODUCT_NAME: Shell
-        MARKETING_VERSION: 1.0
-        CURRENT_PROJECT_VERSION: 1
         SWIFT_VERSION: 6.0
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_STYLE: Automatic
@@ -34,14 +45,14 @@ targets:
     templates: [ShellApplication]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.goodusestudios.shelllab
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID)
         INFOPLIST_FILE: Shell/Resources/Info.plist
   # Select this target only for a reviewed ad-supported derived app.
   ShellAds:
     templates: [ShellApplication]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.goodusestudios.shelllab.ads
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_ADS_BUNDLE_ID)
         INFOPLIST_FILE: Shell/Resources/Info-Ads.plist
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) ADS_ENABLED"
     dependencies:
@@ -74,6 +85,9 @@ schemes:
         Shell: all
         ShellTests: [test]
         ShellUITests: [test]
+    run:
+      # Local StoreKit testing only; it is never bundled into the app.
+      storeKitConfiguration: StoreKit/Shell.storekit
     test:
       targets:
         - ShellTests
@@ -82,3 +96,5 @@ schemes:
     build:
       targets:
         ShellAds: all
+    run:
+      storeKitConfiguration: StoreKit/Shell.storekit

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BackupSettingsView: View {
     @Environment(ShellModel.self) private var model
+    @Environment(\.locale) private var locale
 
     var body: some View {
         List {
@@ -30,7 +31,7 @@ struct BackupSettingsView: View {
                 }
             }
         }
-        .navigationTitle("backup")
+        .navigationTitle(AppLocalization.string("backup", locale: locale))
         .task { await model.backup.refresh() }
         .alert("backup.error", isPresented: errorBinding) {
             Button("ok") {}
@@ -46,6 +47,7 @@ struct BackupSettingsView: View {
 
 private struct BackupRestoreView: View {
     @Environment(ShellModel.self) private var model
+    @Environment(\.locale) private var locale
     let record: BackupRecord
 
     var body: some View {
@@ -61,6 +63,6 @@ private struct BackupRestoreView: View {
                 Text("backup.conflictNotice")
             }
         }
-        .navigationTitle("backup.restore")
+        .navigationTitle(AppLocalization.string("backup.restore", locale: locale))
     }
 }

@@ -50,7 +50,7 @@ final class BackupCoordinator {
     var isEnabled: Bool { configuration.enabled }
 
     func refresh() async {
-        guard isEnabled else { return }
+        guard isEnabled, !isWorking else { return }
         isWorking = true
         defer { isWorking = false }
         do { records = try await provider.listBackups() }
@@ -58,7 +58,7 @@ final class BackupCoordinator {
     }
 
     func create() async {
-        guard isEnabled else { return }
+        guard isEnabled, !isWorking else { return }
         isWorking = true
         defer { isWorking = false }
         do {
@@ -68,7 +68,7 @@ final class BackupCoordinator {
     }
 
     func restore(_ record: BackupRecord, resolution: BackupConflictResolution) async {
-        guard isEnabled else { return }
+        guard isEnabled, !isWorking else { return }
         isWorking = true
         defer { isWorking = false }
         do { try await provider.restoreBackup(id: record.id, resolution: resolution) }

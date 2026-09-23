@@ -1,0 +1,20 @@
+// Per-app identity: the single source of truth for name, bundle IDs, team and
+// version. project.yml and both Info.plist profiles read these values; do not
+// repeat them anywhere else. CI may override CURRENT_PROJECT_VERSION.
+
+// Home-screen name. Info.plist CFBundleDisplayName and ShellConfiguration.appName
+// both resolve from this value.
+APP_DISPLAY_NAME = Shell
+
+// Bundle identifier of the default ad-free `Shell` target.
+APP_BUNDLE_ID = com.goodusestudios.shelllab
+
+// Bundle identifier of the opt-in `ShellAds` target. An ad-supported derived
+// app normally sets this to its storefront bundle identifier.
+APP_ADS_BUNDLE_ID = com.goodusestudios.shelllab.ads
+
+// Apple Developer team used for automatic local signing.
+DEVELOPMENT_TEAM = 49SQ3XQ68Q
+
+MARKETING_VERSION = 1.0
+CURRENT_PROJECT_VERSION = 1

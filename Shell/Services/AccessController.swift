@@ -22,7 +22,10 @@ final class AccessController {
     ) {
         self.configuration = configuration
         self.purchases = purchases ?? PurchaseService(configuration: configuration)
-        self.usage = usage ?? UsageLedger(limit: configuration.freeSuccessfulActions)
+        self.usage = usage ?? UsageLedger(
+            limit: configuration.freeSuccessfulActions,
+            window: configuration.usageWindow
+        )
     }
 
     var decision: AccessDecision {
@@ -34,6 +37,9 @@ final class AccessController {
         )
     }
 
+    /// True while a verified purchase or subscription is active.
+    var isEntitled: Bool { purchases.isEntitled }
+
     static func resolveDecision(
         mode: MonetizationMode,
         isEntitled: Bool,
@@ -41,7 +47,8 @@ final class AccessController {
         hasFreeActionRemaining: Bool
     ) -> AccessDecision {
         switch mode {
-        case .free, .ads, .adsWithRemovePurchase, .adsWithSubscription:
+        case .free, .ads, .adsWithRemovePurchase, .adsWithSubscription,
+             .freemiumWithOneTimeUnlock, .freemiumWithSubscription:
             .allowed
         case .oneTimeUnlock, .subscription:
             if isEntitled { .allowed }
@@ -55,12 +62,7 @@ final class AccessController {
     }
 
     var remainingFreeActions: Int? {
-        switch configuration.mode {
-        case .usageCapWithOneTimeUnlock, .usageCapWithSubscription:
-            usage.remaining
-        default:
-            nil
-        }
+        configuration.includesUsageCap ? usage.remaining : nil
     }
 
     var shouldShowAd: Bool {
@@ -84,12 +86,22 @@ final class AccessController {
 
     @discardableResult
     func recordSuccessfulAction(id: String) -> UsageRecordingResult {
-        switch configuration.mode {
-        case .usageCapWithOneTimeUnlock, .usageCapWithSubscription:
-            guard !purchases.isEntitled else { return .notMetered }
-            return usage.recordSuccessfulAction(id: id)
-        default:
-            return .notMetered
-        }
+        guard configuration.includesUsageCap else { return .notMetered }
+        guard !purchases.isEntitled else { return .notMetered }
+        return usage.recordSuccessfulAction(id: id)
+    }
+
+    /// Re-resolves entitlement from StoreKit and returns the verified result.
+    /// Product repositories call this when a paid-only mutation commits so a
+    /// Boolean captured when a form opened can never grant access after expiry.
+    func resolveEntitlement() async -> Bool {
+        await purchases.refreshEntitlements()
+        return purchases.isEntitled
+    }
+
+    /// Called when the app returns to the foreground.
+    func sceneDidBecomeActive() async {
+        usage.refresh()
+        await purchases.refreshEntitlements()
     }
 }

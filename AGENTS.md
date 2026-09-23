@@ -33,7 +33,9 @@ Read this file before changing code.
 | Ads and consent | `Shell/Services/AdaptiveAdBanner.swift`, `AdConsentService.swift` |
 | Legal consent | `Shell/Services/LegalConsentStore.swift` |
 | Language selection | `Shell/Services/LanguageController.swift` |
-| Identity, package and target | `project.yml`, `Shell/Resources/Info.plist` |
+| Identity (name, bundle IDs, team, version) | `Config/App.xcconfig` (the only source; `project.yml` and both plists read it) |
+| Targets and packages | `project.yml` |
+| Local StoreKit testing | `StoreKit/Shell.storekit` (scheme run action only; never bundled) |
 | Icons and colors | `Shell/Resources/Assets.xcassets` |
 | Release checks | `scripts/validate-shell.sh`, `scripts/check-commerce-branding.sh` |
 | Apple compliance gate | `docs/APPLE_STORE_COMPLIANCE.md` |
@@ -49,10 +51,10 @@ Read this file before changing code.
 
 A derived app normally changes only:
 
-1. Identity: bundle ID, product name, version, SKU and App Store identifiers.
+1. Identity: `Config/App.xcconfig` (display name, bundle IDs, team, version), plus SKU and App Store identifiers.
 2. Brand: complete AppIcon set, in-app mark, tint and product-specific copy.
-3. `ShellConfiguration`: legal URLs/version, onboarding, destinations, languages, monetization, product IDs, ads and support address.
-4. The product implementation conforming to `FeatureCanvasProviding`.
+3. `ShellConfiguration`: legal URLs/version (optionally per language), onboarding and its tour pages, destinations, languages, monetization, product IDs, usage window, paywall benefit keys, ads, keychain access group and support address.
+4. The product implementation conforming to `FeatureCanvasProviding`, including its optional hooks (Settings rows, root decoration such as `.modelContainer`, launch work and URL handling).
 5. Product-specific localization, SwiftData models/repositories and Apple capabilities that the product truly needs.
 6. Reviewed privacy, terms, privacy manifest and store metadata.
 
@@ -81,6 +83,9 @@ Do not redesign settled shell UI while implementing the product canvas.
 - Record success after persistence succeeds, never on button press, form opening, validation failure or retry.
 - Reusing the same ID must be safe; `UsageLedger` deduplicates it.
 - Present the existing shell paywall when access is exhausted.
+- `FeatureCanvasContext` exposes `isEntitled()` for rendering, `resolveEntitlement()` for commit-time re-verification, `accessDecision()`, `selectDestination(_:)` and the displayed `locale()`. Feature-limited products call `resolveEntitlement()` when a paid-only mutation commits.
+- Optional provider hooks: `makeSettingsContent(context:)` adds product rows to Settings; `decorateRoot(_:)` wraps the whole shell (including sheets) for app-wide environment such as `.modelContainer`; `didFinishLaunching(context:)` runs once after migrations and the first entitlement resolution; `handleOpenURL(_:context:)` receives system-opened URLs. Each defaults to a no-op and must not alter shell presentation.
+- A destination icon is `.system(symbol)` or `.asset(name)` through `ShellDestination(id:titleKey:symbol:)` or `ShellDestination(id:titleKey:image:)`.
 - Product code must not read or mutate StoreKit or Keychain entitlement state directly.
 
 ## Monetization modes
@@ -95,6 +100,10 @@ Do not redesign settled shell UI while implementing the product canvas.
 | `.subscription` | Active verified subscription only | No | Subscription |
 | `.usageCapWithOneTimeUnlock` | Free successful actions, then verified unlock | No | One-time |
 | `.usageCapWithSubscription` | Free successful actions, then active subscription | No | Subscription |
+| `.freemiumWithOneTimeUnlock` | Always; the product repository enforces its own free-tier limits | No | One-time |
+| `.freemiumWithSubscription` | Always; the product repository enforces its own free-tier limits | No | Subscription |
+
+Usage caps count per `usageWindow`: `.lifetime` (default), `.day` or `.month` (local calendar). Subscription modes may offer further plans of the same group through `additionalSubscriptionProductIDs`; the paywall lists them in configured order, discloses an eligible introductory offer, and shows offer-code redemption only when `offersCodeRedemption` is true.
 
 The current template default is `.usageCapWithSubscription` with five free successful actions. Change it deliberately for each app.
 
@@ -107,7 +116,7 @@ The anchored adaptive banner is implemented inside each destination's product-co
 - Mobile Ads has been prepared; and
 - no verified remove-ads entitlement is active.
 
-Usage-cap, one-time-unlock, ad-free subscription and free profiles do not show the banner. Replace Google demo IDs only in an ad-enabled derived app and complete the corresponding UMP, privacy-manifest and App Store disclosures.
+Usage-cap, one-time-unlock, ad-free subscription, freemium and free profiles do not show the banner. Replace Google demo IDs only in an ad-enabled derived app and complete the corresponding UMP, privacy-manifest and App Store disclosures. If the AdMob UMP configuration enables the IDFA/App Tracking Transparency message, add a reviewed `NSUserTrackingUsageDescription` to `Info-Ads.plist` first; the system request fails without it. Replace the single SKAdNetwork entry with Google's current published list.
 
 ## Revenue integrity
 
@@ -131,12 +140,14 @@ Usage-cap, one-time-unlock, ad-free subscription and free profiles do not show t
 - Billing-retry UI routes to Apple subscription management instead of offering a duplicate purchase. Subscription apps expose truthful current status and Apple's management surface only when the verified customer state makes that action relevant.
 - Do not render a fake inactive subscription card. Settings shows a neutral checking row while StoreKit resolves; hides subscription status and Manage Subscription when the verified state is absent, expired or revoked; and offers management only for active, grace, billing-retry or still-valid offline-cached states. Icons must reflect the state instead of showing a success seal for every condition.
 - Subscription purchase UI uses StoreKit's localized display name, full price, currency, and period. Never substitute a hard-coded product name or price for App Store metadata.
-- Keychain usage records are durable, bounded and deduplicated.
+- Keychain usage records are durable, bounded and deduplicated. Unreadable storage (for example before first unlock) is never overwritten; it is re-read when the app becomes active.
+- For one-time products, an empty `Transaction.currentEntitlements` result is authoritative and clears the offline snapshot. Only a subscription whose status cannot be verified may keep a still-valid snapshot until its expiry.
+- Errors from work the customer did not start (launch catalog load, background transaction updates) are recorded in `lastBackgroundError`, never shown as a later surprise alert.
 - Shell Lab and entitlement overrides must remain inside `#if DEBUG`.
 
 ## Onboarding and legal
 
-The shell supports optional `.legalOnly`, `.singleScreen` and `.guidedTour` profiles. The template default is `.legalOnly`, but a derived app must set `ShellConfiguration.onboarding` to `nil` unless it has a genuine product or jurisdiction-specific acceptance need. An App Store privacy-policy link requirement by itself does not justify a blocking first-launch gate. When onboarding is disabled, launch directly into the product and keep Privacy and Terms reachable from Settings and every subscription purchase surface. When a profile is enabled, it ends with one explicit acceptance control; changing the legal version forces re-consent, and Privacy and Terms remain readable before acceptance.
+The shell supports optional `.legalOnly`, `.singleScreen` and `.guidedTour` profiles; the tour's pages come from `ShellConfiguration.onboardingTourPages`. The template default is `.legalOnly`, but a derived app must set `ShellConfiguration.onboarding` to `nil` unless it has a genuine product or jurisdiction-specific acceptance need. An App Store privacy-policy link requirement by itself does not justify a blocking first-launch gate. When onboarding is disabled, launch directly into the product and keep Privacy and Terms reachable from Settings and every subscription purchase surface. When a profile is enabled, it ends with one explicit acceptance control; changing the legal version forces re-consent, and Privacy and Terms remain readable before acceptance.
 
 All onboarding, Settings and paywall legal controls must resolve from `ShellConfiguration.legal` and open the published HTTPS source of truth. Do not duplicate policy bodies in localization files. Before release, verify every configured destination returns a successful page and that its actual text matches the final SDK inventory, data flow, monetization, backup/restore, deletion and territory behavior—not merely a non-error placeholder host.
 
@@ -198,7 +209,7 @@ When execution is authorized, the release checks are:
 - `xcodegen generate`
 - Xcode Release build and unit tests before archive/upload
 
-TestFlight requires an explicit manual workflow dispatch and the exact confirmation text. Its build number must be unique and monotonically safe relative to prior uploads; a UTC timestamp plus workflow run number is the shell default. Never upload or trigger a hosted run unless the user explicitly authorizes it.
+TestFlight requires an explicit manual workflow dispatch and the exact confirmation text. Derived repositories call `.github/workflows/testflight.yml` through `workflow_call` from their own manually dispatched workflow (with their own confirmation phrase and `secrets: inherit`) instead of copying it; its `advertising` input selects `ShellAds` and `--release-ads`. Its build number must be unique and monotonically safe relative to prior uploads; a UTC timestamp plus workflow run number is the shell default. Never upload or trigger a hosted run unless the user explicitly authorizes it.
 
 The Welding Wallet bridge is product-specific and must follow the app repository’s current business model. Its production-logic option is `subscription`: three active cylinders remain free, the verified annual product `com.gooduse.weldinggaswallet.pro.yearly` unlocks unlimited active cylinders, customer-facing price and period come from StoreKit, and the archive gate rejects advertising frameworks and metadata. Do not preserve obsolete monthly, one-time-purchase or ad-enabled bridge behavior.
 

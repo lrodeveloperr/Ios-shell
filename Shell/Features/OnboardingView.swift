@@ -5,15 +5,12 @@ struct OnboardingView: View {
     let isReconsent: Bool
     let onAccept: () -> Void
 
+    @Environment(LanguageController.self) private var language
     @State private var page = 0
     @State private var accepted = false
     @State private var legalDocument: LegalDocument?
 
-    private let tourPages = [
-        OnboardingPage(titleKey: "onboarding.tour.fast.title", messageKey: "onboarding.tour.fast.message"),
-        OnboardingPage(titleKey: "onboarding.tour.native.title", messageKey: "onboarding.tour.native.message"),
-        OnboardingPage(titleKey: "onboarding.tour.ready.title", messageKey: "onboarding.tour.ready.message"),
-    ]
+    private let tourPages = ShellConfiguration.onboardingTourPages
 
     var body: some View {
         ScrollView {
@@ -39,7 +36,7 @@ struct OnboardingView: View {
                     .disabled(showsAcceptance && !accepted)
                     .accessibilityIdentifier("shell.onboarding.primary")
 
-                if profile == .guidedTour && page > 0 {
+                if isTour && page > 0 {
                     Button("back") { withAnimation { page -= 1 } }
                         .buttonStyle(.bordered)
                         .controlSize(.large)
@@ -59,7 +56,7 @@ struct OnboardingView: View {
             .frame(maxWidth: .infinity)
         }
         .sheet(item: $legalDocument) { document in
-            LegalView(document: document)
+            LegalView(document: document, languageID: language.resolvedLanguageID)
                 .ignoresSafeArea()
         }
     }
@@ -81,23 +78,30 @@ struct OnboardingView: View {
                 Text("onboarding.single.title").font(.largeTitle.bold())
                 Text("onboarding.single.message").font(.title3).foregroundStyle(.secondary)
             case .guidedTour:
-                Text("\(page + 1) / \(tourPages.count)").font(.headline).foregroundStyle(.tint)
-                Text(tourPages[page].titleKey).font(.largeTitle.bold())
-                Text(tourPages[page].messageKey).font(.title3).foregroundStyle(.secondary)
+                if let current = tourPages[safe: page] {
+                    Text("\(page + 1) / \(tourPages.count)").font(.headline).foregroundStyle(.tint)
+                    Text(LocalizedStringKey(current.titleKey)).font(.largeTitle.bold())
+                    Text(LocalizedStringKey(current.messageKey)).font(.title3).foregroundStyle(.secondary)
+                }
             }
         }
     }
 
+    /// A tour with no configured pages behaves like a legal-only gate.
+    private var isTour: Bool { profile == .guidedTour && !tourPages.isEmpty }
+
+    private var isOnLastTourPage: Bool { page >= tourPages.count - 1 }
+
     private var showsAcceptance: Bool {
-        isReconsent || profile != .guidedTour || page == tourPages.count - 1
+        isReconsent || !isTour || isOnLastTourPage
     }
 
     private var primaryButtonTitle: LocalizedStringKey {
-        profile == .guidedTour && !isReconsent && page < tourPages.count - 1 ? "continue" : "getStarted"
+        isTour && !isReconsent && !isOnLastTourPage ? "continue" : "getStarted"
     }
 
     private func advanceOrAccept() {
-        if profile == .guidedTour && !isReconsent && page < tourPages.count - 1 {
+        if isTour && !isReconsent && !isOnLastTourPage {
             withAnimation { page += 1 }
         } else if accepted {
             onAccept()
@@ -105,9 +109,8 @@ struct OnboardingView: View {
     }
 }
 
-private struct OnboardingPage {
-    let titleKey: LocalizedStringKey
-    let messageKey: LocalizedStringKey
+private extension Array {
+    subscript(safe index: Int) -> Element? { indices.contains(index) ? self[index] : nil }
 }
 
 private struct CheckboxToggleStyle: ToggleStyle {

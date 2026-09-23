@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Closed a revenue leak: an empty `Transaction.currentEntitlements` result now revokes a cached one-time unlock (refund, Apple Account switch or reinstall) instead of the Keychain snapshot granting it forever.
+- Made purchase, restore and catalog retry single-flight at the service level, coalesced overlapping entitlement refreshes, stopped an unknown purchase result from revoking access, and stopped background StoreKit errors from resurfacing as a later paywall alert.
+- Added multiple subscription plans per group, introductory-offer disclosure for eligible customers, optional offer-code redemption, freemium modes with commit-time entitlement re-verification, and daily/monthly usage windows.
+- Added optional provider hooks (Settings rows, root decoration, launch, URL handling), destination selection, asset tab icons, configurable onboarding tour pages and paywall benefits, per-language legal URLs and a shared keychain access group.
+- Fixed "1 free actions remaining" with plural rules, localized the remaining hard-coded strings, resolved navigation and tab titles from the selected language, followed the displayed catalog for RTL, and passed layout direction to the paywall opened from Settings.
+- Moved identity into `Config/App.xcconfig`, pinned Google Mobile Ads to 13.10.0, removed the stale `ExportOptions.plist`, stopped bundling the terminology JSON, and added a local StoreKit configuration.
+- Hardened validation: no check is skipped when an optional tool is missing, the validator's executable bit is restored, extra `.lproj` folders and template Settings/paywall/onboarding copy fail release, and app-specific bridges are validated only when present.
+- Made the TestFlight workflow reusable through `workflow_call`, added an advertising upload path, automatic provisioning-profile creation and archive checks for version, privacy manifest and ad-SDK presence.
+- Compatible (MINOR/PATCH) contract upgrades no longer require a migration step.
+
 - Made in-app locale resolution region/script-aware, mirrored the complete shell when an RTL language is selected independently of the device language, and strengthened the localization gate so machine-generated drafts, English exonyms and blanket cultural-review claims cannot qualify a locale for release.
 - Made Settings subscription rows lifecycle-aware: inactive/expired/revoked customers no longer see a success badge or Manage Subscription, checking is neutral, active/recoverable states keep management, and legal button typography can no longer inherit the app tint. Added upstream zero-placeholder, live-localization and Settings-state regression gates.
 - Hardened auto-renewable subscription lifecycle handling: verified renewal states, Billing Grace Period, billing retry, cancellation-through-expiry, foreground/expiration refresh, cached effective expiry, and in-app subscription management.

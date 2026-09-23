@@ -75,7 +75,7 @@ final class AdConsentService {
 
     func prepareIfNeeded(advertisingEnabled: Bool) async {
         if advertisingEnabled {
-            message = "Advertising requires the ShellAds target."
+            message = AppLocalization.string("ads.requiresTarget", locale: AppLocalization.selectedLocale)
         }
     }
 

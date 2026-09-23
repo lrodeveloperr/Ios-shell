@@ -33,6 +33,18 @@ struct SubscriptionAccessEvaluation: Equatable, Sendable {
     }
 }
 
+/// Decides whether the offline Keychain snapshot may stand in for StoreKit
+/// after a refresh found no verified entitlement.
+enum OfflineCachePolicy {
+    /// `Transaction.currentEntitlements` is the device's authoritative local
+    /// record for one-time products, so an empty result revokes the cache (for
+    /// example after a refund or an Apple Account switch). Only a subscription
+    /// whose status could not be verified may keep a still-valid snapshot.
+    static func mayBridge(includesSubscription: Bool, subscriptionStatusIsAuthoritative: Bool) -> Bool {
+        includesSubscription && !subscriptionStatusIsAuthoritative
+    }
+}
+
 @MainActor
 @Observable
 final class PurchaseService {
@@ -43,11 +55,22 @@ final class PurchaseService {
     nonisolated(unsafe) private var updatesTask: Task<Void, Never>?
     @ObservationIgnored
     nonisolated(unsafe) private var expirationTask: Task<Void, Never>?
+    @ObservationIgnored private var refreshTask: Task<Void, Never>?
+    @ObservationIgnored private var refreshRequested = false
+    @ObservationIgnored private var catalogTask: Task<Void, Never>?
+    @ObservationIgnored private var storeOperationTask: Task<Void, Never>?
 
     private(set) var products: [Product] = []
     private(set) var entitlementState: EntitlementState = .checking
     private(set) var subscriptionCondition: SubscriptionCondition
     private(set) var isLoadingProducts = false
+    /// True while a purchase or restore runs. Repeated requests join it.
+    private(set) var isStoreOperationActive = false
+    /// Subscription products whose introductory offer this customer may redeem.
+    private(set) var introOfferEligibleProductIDs: Set<String> = []
+    /// Last failure from work the customer did not start (launch catalog load,
+    /// background transaction updates). It is never shown as a surprise alert.
+    private(set) var lastBackgroundError: String?
     var showingError = false
     var message = ""
 
@@ -98,33 +121,31 @@ final class PurchaseService {
 
     var isChecking: Bool { entitlementState == .checking }
 
-    var primaryProduct: Product? {
-        let desiredID: String
-        switch configuration.mode {
-        case .adsWithRemovePurchase, .oneTimeUnlock, .usageCapWithOneTimeUnlock:
-            desiredID = configuration.lifetimeProductID
-        case .adsWithSubscription, .subscription, .usageCapWithSubscription:
-            desiredID = configuration.subscriptionProductID
-        case .free, .ads:
-            return nil
-        }
-        return products.first { $0.id == desiredID }
-    }
+    /// Loaded products for the selected mode, in configured display order.
+    var purchasableProducts: [Product] { products }
 
-    func start() async {
+    var primaryProduct: Product? { products.first }
+
+    /// Loads the catalog and resolves entitlement. Concurrent calls join the
+    /// active load. Pass `userInitiated` for a customer-visible retry.
+    func start(userInitiated: Bool = false) async {
         guard configuration.includesPurchase else {
             entitlementState = .notEntitled
             return
         }
-
-        isLoadingProducts = true
-        defer { isLoadingProducts = false }
-        do {
-            products = try await Product.products(for: configuration.productIDs)
-        } catch {
-            present(error)
+        if let catalogTask {
+            await catalogTask.value
+            return
         }
-        await refreshEntitlements()
+        isLoadingProducts = true
+        let task = Task { @MainActor in
+            await self.loadCatalog(userInitiated: userInitiated)
+            await self.refreshEntitlements()
+            self.isLoadingProducts = false
+            self.catalogTask = nil
+        }
+        catalogTask = task
+        await task.value
     }
 
     func purchasePrimary() async {
@@ -133,35 +154,113 @@ final class PurchaseService {
             showingError = true
             return
         }
+        await purchase(product)
+    }
+
+    /// Single-flight: a repeated tap joins the active purchase or restore.
+    func purchase(_ product: Product) async {
+        await runStoreOperation { await self.performPurchase(product) }
+    }
+
+    /// Single-flight: a repeated tap joins the active purchase or restore.
+    func restore() async {
+        await runStoreOperation { await self.performRestore() }
+    }
+
+    /// Clears an alert left over from an earlier surface.
+    func clearError() {
+        showingError = false
+    }
+
+    /// Coalesces launch, foreground, transaction-update, purchase and expiry
+    /// triggers into one serial refresh. A request that arrives mid-refresh
+    /// schedules exactly one more pass.
+    func refreshEntitlements() async {
+        refreshRequested = true
+        if let refreshTask {
+            await refreshTask.value
+            return
+        }
+        let task = Task { @MainActor in
+            while self.refreshRequested {
+                self.refreshRequested = false
+                await self.performEntitlementRefresh()
+            }
+            self.refreshTask = nil
+        }
+        refreshTask = task
+        await task.value
+    }
+
+    private func runStoreOperation(_ operation: @escaping @MainActor @Sendable () async -> Void) async {
+        if let storeOperationTask {
+            await storeOperationTask.value
+            return
+        }
+        isStoreOperationActive = true
+        let task = Task { @MainActor in
+            await operation()
+            self.isStoreOperationActive = false
+            self.storeOperationTask = nil
+        }
+        storeOperationTask = task
+        await task.value
+    }
+
+    private func loadCatalog(userInitiated: Bool) async {
+        do {
+            let loaded = try await Product.products(for: configuration.productIDs)
+            let order = configuration.orderedProductIDs
+            products = loaded.sorted {
+                (order.firstIndex(of: $0.id) ?? Int.max) < (order.firstIndex(of: $1.id) ?? Int.max)
+            }
+            await updateIntroOfferEligibility()
+        } catch {
+            present(error, userInitiated: userInitiated)
+        }
+    }
+
+    private func updateIntroOfferEligibility() async {
+        var eligible = Set<String>()
+        for product in products {
+            guard let subscription = product.subscription, subscription.introductoryOffer != nil else { continue }
+            if await subscription.isEligibleForIntroOffer { eligible.insert(product.id) }
+        }
+        introOfferEligibleProductIDs = eligible
+    }
+
+    private func performPurchase(_ product: Product) async {
         do {
             switch try await product.purchase() {
             case let .success(verification):
                 let transaction = try verified(verification)
                 await transaction.finish()
                 await refreshEntitlements()
+                await updateIntroOfferEligibility()
             case .pending:
                 message = AppLocalization.string("purchase.pending", locale: AppLocalization.selectedLocale)
                 showingError = true
             case .userCancelled:
                 break
             @unknown default:
-                entitlementState = .notEntitled
+                // An unrecognized result must never revoke existing access.
+                await refreshEntitlements()
             }
         } catch {
-            present(error)
+            present(error, userInitiated: true)
         }
     }
 
-    func restore() async {
+    private func performRestore() async {
         do {
             try await AppStore.sync()
             await refreshEntitlements()
         } catch {
-            present(error)
+            present(error, userInitiated: true)
         }
     }
 
-    func refreshEntitlements() async {
+    private func performEntitlementRefresh() async {
         guard !configuration.productIDs.isEmpty else {
             entitlementState = .notEntitled
             return
@@ -187,7 +286,7 @@ final class PurchaseService {
                   configuration.productIDs.contains(transaction.productID),
                   transaction.revocationDate == nil else { continue }
 
-            if transaction.productID == configuration.subscriptionProductID {
+            if configuration.subscriptionProductIDs.contains(transaction.productID) {
                 if subscriptionResult.isAuthoritative { continue }
                 guard let expirationDate = transaction.expirationDate, expirationDate > now() else { continue }
                 productIDs.insert(transaction.productID)
@@ -203,8 +302,12 @@ final class PurchaseService {
             productIDs.insert(transaction.productID)
         }
 
+        let cacheMayBridge = OfflineCachePolicy.mayBridge(
+            includesSubscription: configuration.includesSubscription,
+            subscriptionStatusIsAuthoritative: subscriptionResult.isAuthoritative
+        )
         if productIDs.isEmpty,
-           !subscriptionResult.isAuthoritative,
+           cacheMayBridge,
            let snapshot = cache.load(),
            snapshot.isEntitled(to: configuration.productIDs, at: now()) {
             let cachedIDs = snapshot.entitledProductIDs.intersection(configuration.productIDs)
@@ -231,7 +334,7 @@ final class PurchaseService {
             } catch {
                 // The verified StoreKit result remains authoritative for this process.
                 entitlementState = .entitled(productIDs: productIDs)
-                present(error)
+                present(error, userInitiated: false)
             }
             scheduleEntitlementRefresh(at: expiries.values.min())
         }
@@ -247,7 +350,7 @@ final class PurchaseService {
             await transaction.finish()
             await refreshEntitlements()
         } catch {
-            present(error)
+            present(error, userInitiated: false)
         }
     }
 
@@ -270,8 +373,9 @@ final class PurchaseService {
     }
 
     private func loadSubscriptionStatus() async -> SubscriptionStatusResult {
+        // Status is group-wide, so any loaded product of the group answers for all.
         guard configuration.includesSubscription,
-              let product = products.first(where: { $0.id == configuration.subscriptionProductID }),
+              let product = products.first(where: { configuration.subscriptionProductIDs.contains($0.id) }),
               let subscription = product.subscription else {
             return SubscriptionStatusResult(evaluation: nil, isAuthoritative: false)
         }
@@ -354,11 +458,17 @@ final class PurchaseService {
         }
     }
 
-    private func present(_ error: Error) {
-        message = error is PurchaseError
+    private func present(_ error: Error, userInitiated: Bool) {
+        if let storeError = error as? StoreKitError, case .userCancelled = storeError { return }
+        let text = error is PurchaseError
             ? AppLocalization.string("purchase.verificationFailed", locale: AppLocalization.selectedLocale)
             : error.localizedDescription
-        showingError = true
+        if userInitiated {
+            message = text
+            showingError = true
+        } else {
+            lastBackgroundError = text
+        }
     }
 }
 

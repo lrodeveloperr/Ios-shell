@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 
 @MainActor
@@ -38,13 +39,35 @@ final class ShellModel {
     /// canvas and native navigation do not jump when the banner arrives.
     var shouldRenderAd: Bool { access.shouldShowAd }
 
-    func start() async {
+    /// The capabilities handed to the injected product provider.
+    var featureContext: FeatureCanvasContext {
+        FeatureCanvasContext(
+            remainingFreeActions: { self.access.remainingFreeActions },
+            recordSuccessfulAction: { self.access.recordSuccessfulAction(id: $0) },
+            requestUpgrade: { self.paywallPresented = true },
+            isEntitled: { self.access.isEntitled },
+            accessDecision: { self.access.decision },
+            resolveEntitlement: { await self.access.resolveEntitlement() },
+            selectDestination: { self.selectDestination(id: $0) },
+            locale: { self.language.locale }
+        )
+    }
+
+    /// Returns false when the migrations did not complete.
+    @discardableResult
+    func start() async -> Bool {
         do { try migrationManager.migrateIfNeeded(using: ShellConfiguration.migrations) }
         catch {
             startupMessage = error.localizedDescription
-            return
+            return false
         }
         await access.purchases.start()
+        return true
+    }
+
+    func selectDestination(id: String) {
+        guard ShellConfiguration.destinations.contains(where: { $0.id == id }) else { return }
+        selectedDestination = id
     }
 
     func prepareAdvertisingIfNeeded() async {

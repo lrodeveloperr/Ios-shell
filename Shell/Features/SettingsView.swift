@@ -3,6 +3,7 @@ import SwiftUI
 
 struct SettingsView: View {
     let model: ShellModel
+    var featureProvider: (any FeatureCanvasProviding)? = nil
     @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
     @State private var showPaywall = false
@@ -45,12 +46,18 @@ struct SettingsView: View {
                 }
             }
 
+            if let productContent = featureProvider?.makeSettingsContent(context: model.featureContext) {
+                productContent
+            }
+
             Section {
                 NavigationLink { LanguageView() } label: {
-                    SettingsLabel("language", subtitle: languageSubtitle, symbol: "globe")
+                    SettingsLabel("language", verbatimSubtitle: languageSubtitle, symbol: "globe")
                 }
-                Link(destination: URL(string: "mailto:\(ShellConfiguration.supportEmail)")!) {
-                    SettingsLabel("support", subtitle: ShellConfiguration.supportEmail, symbol: "questionmark.circle")
+                if let supportURL {
+                    Link(destination: supportURL) {
+                        SettingsLabel("support", subtitle: ShellConfiguration.supportEmail, symbol: "questionmark.circle")
+                    }
                 }
                 if model.access.configuration.includesAdvertising && model.ads.isPrivacyOptionsRequired {
                     Button {
@@ -94,7 +101,7 @@ struct SettingsView: View {
                 Text("settings.footer").font(.footnote).foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("settings")
+        .navigationTitle(AppLocalization.string("settings", locale: locale))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("done") { dismiss() } } }
         .sheet(isPresented: $showPaywall) {
@@ -102,16 +109,27 @@ struct SettingsView: View {
                 .environment(model)
                 .environment(model.language)
                 .environment(\.locale, model.language.locale)
+                .environment(\.layoutDirection, model.language.layoutDirection)
         }
         .sheet(item: $legalDocument) { document in
-            LegalView(document: document)
+            LegalView(document: document, languageID: model.language.resolvedLanguageID)
                 .ignoresSafeArea()
         }
         .manageSubscriptionsSheet(isPresented: $showingManageSubscriptions)
     }
 
     private var languageSubtitle: String {
-        ShellConfiguration.supportedLanguages.first { $0.id == model.language.selection }?.displayName ?? "Follow system"
+        let selected = ShellConfiguration.supportedLanguages.first { $0.id == model.language.selection }
+            ?? AppLanguage(id: "system", displayName: "")
+        return AppLocalization.languageName(selected, locale: locale)
+    }
+
+    /// Percent-encoded so an address with unusual characters cannot crash.
+    private var supportURL: URL? {
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = ShellConfiguration.supportEmail
+        return components.url
     }
 
     private var shouldShowUpgrade: Bool {
@@ -198,18 +216,19 @@ private struct SettingsLabel: View {
 
 private struct LanguageView: View {
     @Environment(LanguageController.self) private var language
+    @Environment(\.locale) private var locale
 
     var body: some View {
         @Bindable var language = language
         Form {
             Picker("language", selection: $language.selection) {
                 ForEach(ShellConfiguration.supportedLanguages) { option in
-                    Text(option.displayName).tag(option.id)
+                    Text(AppLocalization.languageName(option, locale: locale)).tag(option.id)
                 }
             }
             .pickerStyle(.inline)
             Text("language.help").font(.footnote).foregroundStyle(.secondary)
         }
-        .navigationTitle("language")
+        .navigationTitle(AppLocalization.string("language", locale: locale))
     }
 }

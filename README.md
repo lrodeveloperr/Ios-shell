@@ -24,13 +24,38 @@ Both GitHub Actions workflows are manual-only so routine commits and pull reques
 ## Derive an app
 
 1. Implement `FeatureCanvasProviding` and inject it in `ShellApp`. The shell composes it only when access is allowed; feature code calls `recordSuccessfulAction` only after a confirmed successful capped action.
-2. Configure identity, destinations, whether onboarding is needed, legal version/URLs, monetization, product IDs, languages, and advertising in `ShellConfiguration.swift` and `project.yml`.
+2. Set identity (display name, bundle IDs, team, version) in `Config/App.xcconfig`, then configure destinations, whether onboarding is needed, legal version/URLs, monetization, product IDs, languages, and advertising in `ShellConfiguration.swift`.
 3. Replace the app icon and the reviewed legal text in every shipped localization.
 4. If advertising is enabled, replace both Google demo IDs and complete the AdMob/UMP messages and privacy declarations for the derived app.
 5. Create matching App Store Connect products. Product types must match the chosen profile.
 6. Run `scripts/validate-shell.sh --release`, `xcodegen generate`, and the unit tests before distribution.
 
 The TestFlight workflow permits template-mode upload only for `com.goodusestudios.shelllab`. Any derived bundle identifier must pass strict release validation before archive or upload.
+
+A derived repository reuses the upload workflow instead of copying it:
+
+```yaml
+name: Acme TestFlight
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type UPLOAD ACME to confirm upload
+        required: true
+        type: string
+jobs:
+  upload:
+    uses: lrodeveloperr/Ios-shell/.github/workflows/testflight.yml@main
+    with:
+      confirmation: ${{ inputs.confirmation }}
+      expected_confirmation: UPLOAD ACME
+      bundle_id: com.example.acme
+      app_name: Acme
+      app_sku: acme-ios
+      team_id: ABCDE12345
+      provisioning_profile_name: Acme App Store CI
+    secrets: inherit
+```
 
 ## Production-only configuration
 

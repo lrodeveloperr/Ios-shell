@@ -46,9 +46,21 @@ final class LanguageController {
         selection == "system" ? .autoupdatingCurrent : Locale(identifier: selection)
     }
 
+    /// Direction of the catalog actually shown. Following the system on a
+    /// device whose language has no shipped catalog displays the fallback
+    /// language, so the direction follows that fallback, not the device.
     var layoutDirection: LayoutDirection {
-        let identifier = selection == "system" ? Locale.autoupdatingCurrent.identifier : selection
-        return SupportedLocaleResolver.isRightToLeft(identifier) ? .rightToLeft : .leftToRight
+        SupportedLocaleResolver.isRightToLeft(resolvedLanguageID) ? .rightToLeft : .leftToRight
+    }
+
+    /// The `supportedLanguages` id whose catalog is displayed.
+    var resolvedLanguageID: String {
+        selection == "system" ? Self.closestSupported(to: Locale.autoupdatingCurrent.identifier) : selection
+    }
+
+    /// Resolves a shell or product key in the selected language.
+    func string(_ key: String, _ arguments: CVarArg...) -> String {
+        AppLocalization.string(key, locale: locale, arguments: arguments)
     }
 
     static func closestSupported(to candidate: String) -> String {

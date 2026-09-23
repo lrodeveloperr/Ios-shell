@@ -72,6 +72,27 @@ final class ShellUITests: XCTestCase {
         XCTAssertGreaterThanOrEqual(frame.width, 44)
     }
 
+    /// The whole visible checkbox row is one target: left, center and right
+    /// edge taps each toggle it exactly once.
+    func testAcceptanceCheckboxRespondsAcrossItsWholeSurface() {
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-AppleLanguages", "(en)",
+            "-shell.onboarding.complete", "NO",
+            "-shell.legal.acceptedVersion", "",
+        ]
+        app.launch()
+        let acceptance = app.buttons["shell.onboarding.accept"]
+        let primary = app.buttons["shell.onboarding.primary"]
+        XCTAssertTrue(acceptance.waitForExistence(timeout: 5))
+        for dx in [0.05, 0.5, 0.95] {
+            acceptance.coordinate(withNormalizedOffset: CGVector(dx: dx, dy: 0.5)).tap()
+            XCTAssertTrue(primary.isEnabled, "Tap at \(dx) did not select the checkbox")
+            acceptance.coordinate(withNormalizedOffset: CGVector(dx: dx, dy: 0.5)).tap()
+            XCTAssertFalse(primary.isEnabled, "Tap at \(dx) did not deselect the checkbox")
+        }
+    }
+
     private func launchPastOnboarding() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += [

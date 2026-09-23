@@ -3,6 +3,7 @@
 
 from pathlib import Path
 from collections import Counter
+import plistlib
 import re
 import sys
 
@@ -52,5 +53,31 @@ for locale in locales:
             f"LOCALIZATION FAILED: {locale} placeholder mismatch; "
             f"keys={mismatched_placeholders[:8]}"
         )
+
+# A shipped .lproj folder is a release claim: iOS picks it for matching
+# devices and the App Store lists its language. Only configured languages
+# (plus the English source and Base) may ship.
+allowed_folders = {"en", "Base", *locales}
+shipped = sorted(path.stem for path in RESOURCES.glob("*.lproj") if path.is_dir())
+unconfigured = [folder for folder in shipped if folder not in allowed_folders]
+if unconfigured:
+    sys.exit(
+        "LOCALIZATION FAILED: .lproj folders without a supportedLanguages entry: "
+        f"{unconfigured}. Remove them or add the reviewed locale to ShellConfiguration."
+    )
+
+def plural_keys(path: Path) -> set[str]:
+    with path.open("rb") as handle:
+        return set(plistlib.load(handle))
+
+english_plurals_path = RESOURCES / "en.lproj/Localizable.stringsdict"
+if english_plurals_path.is_file():
+    english_plurals = plural_keys(english_plurals_path)
+    for locale in locales:
+        path = RESOURCES / f"{locale}.lproj/Localizable.stringsdict"
+        if not path.is_file():
+            sys.exit(f"LOCALIZATION FAILED: {locale} has no Localizable.stringsdict plural catalog")
+        if plural_keys(path) != english_plurals:
+            sys.exit(f"LOCALIZATION FAILED: {locale} plural keys differ from English")
 
 print(f"Localization validation passed ({len(locales)} selectable locale catalogs, {len(english)} keys).")
