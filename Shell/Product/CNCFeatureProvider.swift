@@ -483,7 +483,7 @@ private struct RunCanvas: View {
                         TextField("Observed reference", text: Binding(
                             get: { observed[checkpoint] ?? "" }, set: { observed[checkpoint] = $0 }
                         ))
-                        Button { 
+                        Button {
                             Task { await bench.perform(.confirm(runID: run.id, checkpoint: checkpoint, observed: observed[checkpoint] ?? "")) }
                         } label: { Text("Confirm ") + Text(checkpoint.title) }
                         .disabled(bench.busy || (observed[checkpoint] ?? "").isEmpty)
