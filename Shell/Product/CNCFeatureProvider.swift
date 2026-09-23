@@ -18,7 +18,7 @@ private struct CNCFeatureCanvas: View {
             switch destination.id {
             case "jobs": JobsCanvas(bench: bench, onUpgrade: context.requestUpgrade)
             case "run": RunCanvas(bench: bench)
-            case "setups": SetupsCanvas(bench: bench, onUpgrade: context.requestUpgrade)
+            case "setups": SetupsCanvas(bench: bench)
             case "records": RecordsCanvas(bench: bench)
             default: ContentUnavailableView("Unknown section", systemImage: "questionmark.square")
             }
@@ -142,12 +142,10 @@ private struct StartJobForm: View {
 
 private struct SetupsCanvas: View {
     let bench: BenchAppModel
-    let onUpgrade: () -> Void
     @State private var creating = false
     var body: some View {
         List {
             Section { Button { creating = true } label: { Label("New setup draft", systemImage: "plus.circle.fill").frame(maxWidth: .infinity, minHeight: 48) }.buttonStyle(.borderedProminent) }
-            Section { Button("Pro · More part and machine families", action: onUpgrade) }
             Section("Drafts requiring approval") {
                 if bench.draftSetups.isEmpty { Text("No drafts").foregroundStyle(.secondary) }
                 ForEach(bench.draftSetups, id: \.id) { setup in
@@ -286,7 +284,7 @@ private struct SetupDetail: View {
                         }
                     }
                 }.listStyle(.insetGrouped)
-                    .navigationTitle("Approved setup")
+                    .navigationTitle(setup.status == .draft ? "Setup draft" : "Approved setup")
                     .sheet(isPresented: $showingApproval) { NavigationStack { ApproveSetupForm(bench: bench, setupID: setupID, isPresented: $showingApproval) } }
                     .sheet(isPresented: $showingEdit) { NavigationStack { DraftSetupForm(bench: bench, editingSetup: setup, isPresented: $showingEdit) } }
             } else { ContentUnavailableView("Setup unavailable", systemImage: "wrench.adjustable") }
@@ -676,12 +674,11 @@ private struct RunCanvas: View {
             TextField("Shift note", text: $handoffNote)
             Button("Hand off shift") { Task { await bench.perform(.handoff(runID: run.id, to: handoffTo, note: handoffNote)) } }
                 .disabled(bench.busy || handoffTo.isEmpty)
+            TextField("Closeout or abort reason", text: $closeReason)
             if run.status == .running || run.status == .paused {
-                TextField("Closeout reason", text: $closeReason)
                 Button("Close reconciled run") { showClose = true }.disabled(bench.busy || closeReason.isEmpty || run.count(.quarantine) != 0)
             }
             if run.status != .closed && run.status != .aborted {
-                TextField("Abort reason", text: $closeReason)
                 Button("Abort run", role: .destructive) { showAbort = true }.disabled(bench.busy || closeReason.isEmpty)
             }
         }

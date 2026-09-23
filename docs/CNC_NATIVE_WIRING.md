@@ -21,7 +21,7 @@ The shell adds a generic `.freemiumSubscription` profile: product content stays 
 
 ## Product Design source review
 
-- **Removed:** repeated approved setup rows from Jobs and repeated full counts from tab lists. Setup detail sits in Setups; production counts sit in Run; historical counts sit in Records detail.
+- **Removed:** repeated approved setup rows from Jobs, repeated full counts from tab lists, and the second Pro prompt from Setups. Setup detail sits in Setups; production counts sit in Run; historical counts sit in Records detail. Closeout and abort share one reason field in the exceptional-actions sheet.
 - **Kept:** a brief active-job count in Jobs because it helps select the right run; the more detailed count belongs in Run.
 - **Recovery:** mismatched preparation has correction plus explicit issue resolution; rejected inspection has a new review cycle; pending handoff exposes named acknowledgement/reassignment; count correction is available before closeout.
 - **Icon check:** existing `tray.full` and `doc.text` are already used by the shell; `gearshape.2` represents machine operation and `wrench.adjustable` setup work. Every tab remains a single native SF Symbol `Label`, with accessibility supplied by its text label. Verify icon rendering on iPhone and iPad in Xcode UI tests.
