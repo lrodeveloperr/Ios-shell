@@ -18,7 +18,7 @@ struct SettingsView: View {
                         else { showPaywall = true }
                     } label: {
                         if model.access.configuration.includesSubscription {
-                            SettingsLabel(subscriptionActionKey, symbol: "sparkles")
+                            SettingsLabel(subscriptionActionKey, verbatimSubtitle: model.access.purchases.primaryProduct?.description, symbol: "sparkles")
                         } else {
                             SettingsLabel("upgrade", subtitle: "upgrade.subtitle", symbol: "sparkles")
                         }

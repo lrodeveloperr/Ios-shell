@@ -46,6 +46,7 @@ struct FeatureCanvasHost: View {
                 messageKey: "access.purchase.message",
                 onUpgrade: { model.requestUpgrade() },
                 actionKey: upgradeActionKey,
+                productDescription: subscriptionProductDescription,
                 isBusy: upgradeIsBusy
             )
         case .usageLimitReached:
@@ -54,6 +55,7 @@ struct FeatureCanvasHost: View {
                 messageKey: "access.limit.message",
                 onUpgrade: { model.requestUpgrade() },
                 actionKey: upgradeActionKey,
+                productDescription: subscriptionProductDescription,
                 isBusy: upgradeIsBusy
             )
         }
@@ -63,6 +65,12 @@ struct FeatureCanvasHost: View {
         guard model.access.configuration.includesSubscription else { return "upgrade" }
         if case .billingRetry = model.access.purchases.subscriptionCondition { return "subscription.manage" }
         return model.access.purchases.primaryProduct == nil ? "paywall.retryProduct" : "subscription.subscribe"
+    }
+
+    private var subscriptionProductDescription: String? {
+        guard model.access.configuration.includesSubscription else { return nil }
+        let description = model.access.purchases.primaryProduct?.description
+        return description?.isEmpty == false ? description : nil
     }
 
     private var upgradeIsBusy: Bool {
@@ -76,13 +84,17 @@ private struct LockedFeatureView: View {
     let messageKey: LocalizedStringKey
     let onUpgrade: () -> Void
     let actionKey: LocalizedStringKey
+    let productDescription: String?
     let isBusy: Bool
 
     var body: some View {
         ContentUnavailableView {
             Label(titleKey, systemImage: "lock.fill")
         } description: {
-            Text(messageKey)
+            VStack(spacing: 8) {
+                Text(messageKey)
+                if let productDescription { Text(productDescription) }
+            }
         } actions: {
             Button(action: onUpgrade) {
                 if isBusy { ProgressView() }

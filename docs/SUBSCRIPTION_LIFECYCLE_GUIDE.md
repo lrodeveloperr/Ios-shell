@@ -66,7 +66,7 @@ Apple's current subscription guidance requires ongoing value and clear purchase 
 - Use one subscription group for one service unless customers genuinely need simultaneous subscriptions. A single monthly product needs one group and one level.
 - Configure the exact product identifier, one-month duration, availability, tax category, and intended starting price in App Store Connect.
 - Subscription buttons are price-free and invoke `Product.purchase()` directly. There is no app-owned subscription paywall; Apple’s confirmation sheet must present the current localized product name, renewal price, currency and period from App Store Connect before the customer confirms.
-- State the exact service unlocked next to each subscription entry point and keep Privacy, Terms and Restore in Settings. Review the live system confirmation for full renewal price prominence, duration and any offer terms; do not hard-code a currency or manual conversion.
+- Configure the StoreKit product description to state the exact service unlocked; the shell shows it beside the direct entry points when available. Keep Privacy, Terms and Restore in Settings. Review the live system confirmation for full renewal price prominence, duration and any offer terms; do not hard-code a currency or manual conversion.
 - Keep Restore Purchases, Privacy Policy, Terms of Use, subscription status, and Manage Subscription easy to find.
 - Localize the subscription group display name and the subscription display name/description for every storefront language claimed by the app.
 - Supply the subscription review screenshot and notes showing where the paywall is reached, the free limit, what Pro unlocks, and how Review can restore/test it.
