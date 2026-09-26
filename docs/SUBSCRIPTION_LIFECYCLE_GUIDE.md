@@ -65,14 +65,14 @@ Apple's current subscription guidance requires ongoing value and clear purchase 
 
 - Use one subscription group for one service unless customers genuinely need simultaneous subscriptions. A single monthly product needs one group and one level.
 - Configure the exact product identifier, one-month duration, availability, tax category, and intended starting price in App Store Connect.
-- Use StoreKit's localized `displayName`, `displayPrice`, and subscription period in the app. Do not hard-code a currency or claim a manual exchange-rate conversion.
-- Make the full renewal price the most prominent pricing element. State the subscription name, duration, and exact service unlocked.
+- Subscription buttons are price-free and invoke `Product.purchase()` directly. There is no app-owned subscription paywall; Apple’s confirmation sheet must present the current localized product name, renewal price, currency and period from App Store Connect before the customer confirms.
+- State the exact service unlocked next to each subscription entry point and keep Privacy, Terms and Restore in Settings. Review the live system confirmation for full renewal price prominence, duration and any offer terms; do not hard-code a currency or manual conversion.
 - Keep Restore Purchases, Privacy Policy, Terms of Use, subscription status, and Manage Subscription easy to find.
 - Localize the subscription group display name and the subscription display name/description for every storefront language claimed by the app.
 - Supply the subscription review screenshot and notes showing where the paywall is reached, the free limit, what Pro unlocks, and how Review can restore/test it.
 - Submit the first subscription and subscription group with the app version and add the product for review.
 - If Billing Grace Period is enabled, test `inGracePeriod`, billing retry, recovery, cancellation, expiry, refund/revocation, offline launch, foreground refresh, and expiration while a mutation form is open.
-- Keep the app description, screenshots, paywall, legal documents, review notes, and App Store Connect product at the same price and entitlement contract.
+- Keep the app description, screenshots, legal documents, review notes, and App Store Connect product aligned on the same entitlement contract. Avoid static price claims in app-controlled copy and screenshots.
 
 ## Default product-page gate
 
@@ -82,7 +82,7 @@ Apple's current subscription guidance requires ongoing value and clear purchase 
 - Start the description with the clearest differentiator, then a short feature list in the audience's own terminology. Do not put a fixed subscription price in the description because storefront prices vary.
 - Use the 170-character promotional text for timely marketing, not keyword ranking. Keep the 100-character keyword field relevant, comma-separated and free of duplicate/plural/category/app terms, competitor names and unauthorized trademarks.
 - Ensure the privacy label covers the app and every embedded third-party SDK, and keep the required public privacy-policy URL current. Localize privacy URLs where matching documents exist; otherwise disclose the document language accurately.
-- Give App Review exact navigation steps to the free limit, paywall, Restore Purchases, Manage Subscription and any state that needs setup. Include complete contact information and never submit broken links, placeholders or unfinished metadata.
+- Give App Review exact navigation steps to the free limit, direct subscription control, Restore Purchases, Manage Subscription and any state that needs setup. Include complete contact information and never submit broken links, placeholders or unfinished metadata.
 - After release, use Product Page Optimization for controlled screenshot/icon/preview experiments rather than changing several conversion variables at once.
 
 Primary references:

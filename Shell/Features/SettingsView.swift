@@ -13,9 +13,18 @@ struct SettingsView: View {
         List {
             if model.access.configuration.includesPurchase, shouldShowUpgrade {
                 Section {
-                    Button { showPaywall = true } label: {
-                        SettingsLabel("upgrade", subtitle: "upgrade.subtitle", symbol: "sparkles")
+                    Button {
+                        if model.access.configuration.includesSubscription { model.requestUpgrade() }
+                        else { showPaywall = true }
+                    } label: {
+                        if model.access.configuration.includesSubscription {
+                            SettingsLabel(subscriptionActionKey, symbol: "sparkles")
+                        } else {
+                            SettingsLabel("upgrade", subtitle: "upgrade.subtitle", symbol: "sparkles")
+                        }
                     }
+                    .buttonStyle(.plain)
+                    .disabled(subscriptionPurchaseIsBusy)
                     .accessibilityIdentifier("shell.settings.upgrade")
                 }
             }
@@ -34,6 +43,17 @@ struct SettingsView: View {
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("shell.settings.subscription.manage")
                     }
+                }
+            }
+
+            if model.access.configuration.includesSubscription {
+                Section {
+                    Button { Task { await model.access.purchases.restore() } } label: {
+                        SettingsLabel("paywall.restore", symbol: "arrow.clockwise")
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(model.access.purchases.isRestoring || model.isRequestingUpgrade || model.access.purchases.isPurchasing)
+                    .accessibilityIdentifier("shell.settings.restore")
                 }
             }
 
@@ -108,6 +128,27 @@ struct SettingsView: View {
                 .ignoresSafeArea()
         }
         .manageSubscriptionsSheet(isPresented: $showingManageSubscriptions)
+        .alert("store", isPresented: subscriptionErrorBinding) {
+            Button("ok") {}
+        } message: {
+            Text(model.access.purchases.message)
+        }
+    }
+
+    private var subscriptionActionKey: LocalizedStringKey {
+        model.access.purchases.primaryProduct == nil ? "paywall.retryProduct" : "subscription.subscribe"
+    }
+
+    private var subscriptionPurchaseIsBusy: Bool {
+        model.access.configuration.includesSubscription &&
+            (model.isRequestingUpgrade || model.access.purchases.isLoadingProducts)
+    }
+
+    private var subscriptionErrorBinding: Binding<Bool> {
+        Binding(
+            get: { model.access.configuration.includesSubscription && model.access.purchases.showingError },
+            set: { model.access.purchases.showingError = $0 }
+        )
     }
 
     private var languageSubtitle: String {

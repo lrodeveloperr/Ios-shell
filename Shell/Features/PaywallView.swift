@@ -1,13 +1,12 @@
-import StoreKit
 import SwiftUI
 
 /// Commerce surfaces deliberately contain no app icon, logo, custom image
-/// asset, or brand mark. Keep all benefits factual and product-specific.
+/// asset, or brand mark. One-time purchases only; subscriptions start directly
+/// through StoreKit from their upgrade controls.
 struct PaywallView: View {
     @Environment(ShellModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var legalDocument: LegalDocument?
-    @State private var showingManageSubscriptions = false
     let showsDoneButton: Bool
 
     init(showsDoneButton: Bool = false) {
@@ -28,30 +27,15 @@ struct PaywallView: View {
                         .symbolRenderingMode(.hierarchical)
                 }
 
-                if model.access.purchases.subscriptionCondition == .billingRetry {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("paywall.billingRetry.title", systemImage: "exclamationmark.triangle")
-                            .font(.headline)
-                        Text("paywall.billingRetry.message").foregroundStyle(.secondary)
-                        Button("subscription.manage") { showingManageSubscriptions = true }
-                            .buttonStyle(.borderedProminent)
-                            .frame(maxWidth: .infinity)
-                    }
-                } else if let product = model.access.purchases.primaryProduct {
+                if let product = model.access.purchases.primaryProduct {
                     Button {
                         Task { await model.access.purchases.purchasePrimary() }
                     } label: {
                         VStack(spacing: 2) {
                             Text(product.displayName)
                                 .font(.headline)
-                            Group {
-                                if let subscription = product.subscription {
-                                    Text(product.displayPrice) + Text(" · ") + Text(periodKey(subscription.subscriptionPeriod))
-                                } else {
-                                    Text(product.displayPrice)
-                                }
-                            }
-                            .font(.title2.bold())
+                            Text(product.displayPrice)
+                                .font(.title2.bold())
                             Text("paywall.purchase")
                                 .font(.subheadline.weight(.semibold))
                         }
@@ -59,6 +43,7 @@ struct PaywallView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
+                    .disabled(model.access.purchases.isPurchasing || model.access.purchases.isRestoring)
                     .accessibilityIdentifier("shell.paywall.purchase")
                 } else if model.access.purchases.isLoadingProducts {
                     ProgressView("paywall.loadingProduct").frame(maxWidth: .infinity)
@@ -72,13 +57,8 @@ struct PaywallView: View {
                     .accessibilityIdentifier("shell.paywall.retryProduct")
                 }
 
-                if model.access.purchases.primaryProduct?.subscription != nil {
-                    Text("paywall.subscriptionDisclosure")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
                 Button("paywall.restore") { Task { await model.access.purchases.restore() } }
+                    .disabled(model.access.purchases.isPurchasing || model.access.purchases.isRestoring)
                     .frame(maxWidth: .infinity)
                     .accessibilityIdentifier("shell.paywall.restore")
 
@@ -105,7 +85,6 @@ struct PaywallView: View {
             LegalView(document: document)
                 .ignoresSafeArea()
         }
-        .manageSubscriptionsSheet(isPresented: $showingManageSubscriptions)
         .onChange(of: model.access.purchases.isEntitled) { _, entitled in
             if entitled { dismiss() }
         }
@@ -121,15 +100,5 @@ struct PaywallView: View {
             get: { model.access.purchases.showingError },
             set: { model.access.purchases.showingError = $0 }
         )
-    }
-
-    private func periodKey(_ period: Product.SubscriptionPeriod) -> LocalizedStringKey {
-        switch period.unit {
-        case .day: period.value == 1 ? "paywall.period.day.one" : "paywall.period.day.other \(period.value)"
-        case .week: period.value == 1 ? "paywall.period.week.one" : "paywall.period.week.other \(period.value)"
-        case .month: period.value == 1 ? "paywall.period.month.one" : "paywall.period.month.other \(period.value)"
-        case .year: period.value == 1 ? "paywall.period.year.one" : "paywall.period.year.other \(period.value)"
-        @unknown default: "paywall.period.unknown"
-        }
     }
 }

@@ -48,6 +48,8 @@ final class PurchaseService {
     private(set) var entitlementState: EntitlementState = .checking
     private(set) var subscriptionCondition: SubscriptionCondition
     private(set) var isLoadingProducts = false
+    private(set) var isPurchasing = false
+    private(set) var isRestoring = false
     var showingError = false
     var message = ""
 
@@ -112,6 +114,7 @@ final class PurchaseService {
     }
 
     func start() async {
+        guard !isLoadingProducts else { return }
         guard configuration.includesPurchase else {
             entitlementState = .notEntitled
             return
@@ -128,11 +131,14 @@ final class PurchaseService {
     }
 
     func purchasePrimary() async {
+        guard !isPurchasing else { return }
         guard let product = primaryProduct else {
             message = AppLocalization.string("purchase.productUnavailable", locale: AppLocalization.selectedLocale)
             showingError = true
             return
         }
+        isPurchasing = true
+        defer { isPurchasing = false }
         do {
             switch try await product.purchase() {
             case let .success(verification):
@@ -153,6 +159,9 @@ final class PurchaseService {
     }
 
     func restore() async {
+        guard !isRestoring else { return }
+        isRestoring = true
+        defer { isRestoring = false }
         do {
             try await AppStore.sync()
             await refreshEntitlements()

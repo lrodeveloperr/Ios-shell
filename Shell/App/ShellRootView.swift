@@ -62,6 +62,12 @@ struct ShellRootView: View {
                 .environment(\.locale, model.language.locale)
                 .environment(\.layoutDirection, model.language.layoutDirection)
         }
+        .manageSubscriptionsSheet(isPresented: $model.manageSubscriptionsPresented)
+        .alert("store", isPresented: subscriptionErrorBinding) {
+            Button("ok") {}
+        } message: {
+            Text(model.access.purchases.message)
+        }
         .task {
             await model.start()
             if !requiresOnboarding { await model.prepareAdvertisingIfNeeded() }
@@ -77,6 +83,13 @@ struct ShellRootView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await model.access.purchases.refreshEntitlements() } }
         }
+    }
+
+    private var subscriptionErrorBinding: Binding<Bool> {
+        Binding(
+            get: { model.access.configuration.includesSubscription && !model.settingsPresented && model.access.purchases.showingError },
+            set: { model.access.purchases.showingError = $0 }
+        )
     }
 
     private var requiresOnboarding: Bool {

@@ -33,7 +33,7 @@ struct FeatureCanvasHost: View {
                 context: FeatureCanvasContext(
                     remainingFreeActions: { model.access.remainingFreeActions },
                     recordSuccessfulAction: { model.access.recordSuccessfulAction(id: $0) },
-                    requestUpgrade: { model.paywallPresented = true }
+                    requestUpgrade: { model.requestUpgrade() }
                 )
             )
         case .checkingEntitlement:
@@ -44,15 +44,30 @@ struct FeatureCanvasHost: View {
             LockedFeatureView(
                 titleKey: "access.purchase.title",
                 messageKey: "access.purchase.message",
-                onUpgrade: { model.paywallPresented = true }
+                onUpgrade: { model.requestUpgrade() },
+                actionKey: upgradeActionKey,
+                isBusy: upgradeIsBusy
             )
         case .usageLimitReached:
             LockedFeatureView(
                 titleKey: "access.limit.title",
                 messageKey: "access.limit.message",
-                onUpgrade: { model.paywallPresented = true }
+                onUpgrade: { model.requestUpgrade() },
+                actionKey: upgradeActionKey,
+                isBusy: upgradeIsBusy
             )
         }
+    }
+
+    private var upgradeActionKey: LocalizedStringKey {
+        guard model.access.configuration.includesSubscription else { return "upgrade" }
+        if case .billingRetry = model.access.purchases.subscriptionCondition { return "subscription.manage" }
+        return model.access.purchases.primaryProduct == nil ? "paywall.retryProduct" : "subscription.subscribe"
+    }
+
+    private var upgradeIsBusy: Bool {
+        model.access.configuration.includesSubscription &&
+            (model.isRequestingUpgrade || model.access.purchases.isLoadingProducts)
     }
 }
 
@@ -60,6 +75,8 @@ private struct LockedFeatureView: View {
     let titleKey: LocalizedStringKey
     let messageKey: LocalizedStringKey
     let onUpgrade: () -> Void
+    let actionKey: LocalizedStringKey
+    let isBusy: Bool
 
     var body: some View {
         ContentUnavailableView {
@@ -67,8 +84,14 @@ private struct LockedFeatureView: View {
         } description: {
             Text(messageKey)
         } actions: {
-            Button("upgrade", action: onUpgrade)
-                .buttonStyle(.borderedProminent)
+            Button(action: onUpgrade) {
+                if isBusy { ProgressView() }
+                else { Text(actionKey) }
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(isBusy)
+            .accessibilityIdentifier("shell.access.upgrade")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

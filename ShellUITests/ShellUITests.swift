@@ -22,19 +22,17 @@ final class ShellUITests: XCTestCase {
         XCTAssertTrue(primary.isEnabled)
     }
 
-    func testPaywallExposesPurchaseAndRestoreControls() {
-        let app = XCUIApplication()
-        app.launchArguments += [
-            "-AppleLanguages", "(en)",
-            "-shell.onboarding.complete", "YES",
-            "-shell.legal.acceptedVersion", "1",
-        ]
-        app.launch()
-
+    func testSubscriptionUpgradeSkipsAppOwnedPaywallAndKeepsRestore() {
+        let app = launchPastOnboarding()
         app.buttons["shell.settings"].tap()
-        app.buttons["shell.settings.upgrade"].tap()
-        XCTAssertTrue(app.scrollViews["shell.paywall"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["shell.paywall.restore"].exists)
+        XCTAssertTrue(app.buttons["shell.settings.restore"].waitForExistence(timeout: 5))
+
+        let upgrade = app.buttons["shell.settings.upgrade"]
+        XCTAssertTrue(upgrade.waitForExistence(timeout: 10))
+        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: upgrade)
+        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 15), .completed)
+        upgrade.tap()
+        XCTAssertFalse(app.scrollViews["shell.paywall"].exists)
     }
 
     func testSettingsOpensWithoutTerminatingApp() {

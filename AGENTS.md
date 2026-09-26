@@ -67,7 +67,7 @@ Everything else is shell infrastructure. Modify it only to fix a platform-wide d
 5. Implement the feature provider and local data layer.
 6. Record a successful action only after the domain operation commits successfully.
 7. Configure matching App Store Connect products and advertising, when applicable.
-8. Replace every template placeholder and finish localization. Rewrite the complete paywall title, message and benefit list around the derived app's actual paid outcome; generic shell claims such as “useful thing” or “core actions” are release blockers.
+8. Replace every template placeholder and finish localization. For one-time purchases, rewrite the complete paywall title, message and benefits around the actual paid outcome; generic shell claims such as “useful thing” or “core actions” are release blockers. For subscriptions, name the precise paid outcome beside the direct upgrade entry point.
 9. Review the privacy manifest and store disclosures against actual behavior.
 10. Perform only the validation or upload explicitly authorized for the task.
 
@@ -80,7 +80,7 @@ Do not redesign settled shell UI while implementing the product canvas.
 - A stable action ID represents one completed domain operation and must be at most 128 UTF-8 bytes.
 - Record success after persistence succeeds, never on button press, form opening, validation failure or retry.
 - Reusing the same ID must be safe; `UsageLedger` deduplicates it.
-- Present the existing shell paywall when access is exhausted.
+- Call the shell-owned `requestUpgrade` action when access is exhausted. Subscription modes open Apple’s purchase confirmation directly; one-time modes retain the shell paywall.
 - Product code must not read or mutate StoreKit or Keychain entitlement state directly.
 
 ## Monetization modes
@@ -130,13 +130,13 @@ Usage-cap, one-time-unlock, ad-free subscription and free profiles do not show t
 - A lapse must not delete, silently archive, or conceal customer data. Document which records remain manageable, keep excess data viewable/exportable where feasible, and permit limit-reducing actions without payment.
 - Billing-retry UI routes to Apple subscription management instead of offering a duplicate purchase. Subscription apps expose truthful current status and Apple's management surface only when the verified customer state makes that action relevant.
 - Do not render a fake inactive subscription card. Settings shows a neutral checking row while StoreKit resolves; hides subscription status and Manage Subscription when the verified state is absent, expired or revoked; and offers management only for active, grace, billing-retry or still-valid offline-cached states. Icons must reflect the state instead of showing a success seal for every condition.
-- Subscription purchase UI uses StoreKit's localized display name, full price, currency, and period. Never substitute a hard-coded product name or price for App Store metadata.
+- Subscription buttons contain no price and open the StoreKit purchase confirmation without an app-owned intermediate page. Apple’s confirmation must show the current localized product name, full price, currency and period from App Store Connect; keep the paid benefit clear in the adjacent app copy. Never hard-code a storefront price.
 - Keychain usage records are durable, bounded and deduplicated.
 - Shell Lab and entitlement overrides must remain inside `#if DEBUG`.
 
 ## Onboarding and legal
 
-The shell supports optional `.legalOnly`, `.singleScreen` and `.guidedTour` profiles. The template default is `.legalOnly`, but a derived app must set `ShellConfiguration.onboarding` to `nil` unless it has a genuine product or jurisdiction-specific acceptance need. An App Store privacy-policy link requirement by itself does not justify a blocking first-launch gate. When onboarding is disabled, launch directly into the product and keep Privacy and Terms reachable from Settings and every subscription purchase surface. When a profile is enabled, it ends with one explicit acceptance control; changing the legal version forces re-consent, and Privacy and Terms remain readable before acceptance.
+The shell supports optional `.legalOnly`, `.singleScreen` and `.guidedTour` profiles. The template default is `.legalOnly`, but a derived app must set `ShellConfiguration.onboarding` to `nil` unless it has a genuine product or jurisdiction-specific acceptance need. An App Store privacy-policy link requirement by itself does not justify a blocking first-launch gate. When onboarding is disabled, launch directly into the product and keep Privacy and Terms reachable from Settings before every subscription purchase. When a profile is enabled, it ends with one explicit acceptance control; changing the legal version forces re-consent, and Privacy and Terms remain readable before acceptance.
 
 All onboarding, Settings and paywall legal controls must resolve from `ShellConfiguration.legal` and open the published HTTPS source of truth. Do not duplicate policy bodies in localization files. Before release, verify every configured destination returns a successful page and that its actual text matches the final SDK inventory, data flow, monetization, backup/restore, deletion and territory behavior—not merely a non-error placeholder host.
 
@@ -189,7 +189,7 @@ All onboarding, Settings and paywall legal controls must resolve from `ShellConf
 
 A derived release must not ship with template identity, example URLs, support email, demo product IDs, Google test ad IDs, placeholder legal text, placeholder icon references or the sample provider.
 
-The paywall is app code, not a reusable marketing draft. A release must replace the shell's generic title, explanation and benefits in every shipped localization. Benefits must name only entitlements the selected monetization configuration and StoreKit product actually grant; the displayed price and period remain StoreKit-derived. When Settings opens the paywall, present it modally or otherwise ensure the navigation bar does not show both Back and Done for the same exit.
+The one-time paywall is app code, not a reusable marketing draft. A release using it must replace generic title, explanation and benefits in every shipped localization. Subscription modes bypass that page: the access gate, feature upgrade request and Settings open the Apple purchase sheet in one tap. Keep the exact paid benefit clear in the app and confirm Apple’s sheet displays the current localized price and period before submission.
 
 When execution is authorized, the release checks are:
 
@@ -214,7 +214,7 @@ Paywall, purchase, restore, subscription and win-back surfaces must contain no a
 - Keep private reviewer evidence separate from public marketing media. Put reviewer screenshots in the subscription’s Review Information field and full usage demonstrations in the app version’s App Review Information attachment. Do not place either in the optional public promotional-purchase image or an App Preview slot unless it independently satisfies that public asset’s purpose and specifications.
 - The optional public subscription/promotional-purchase image must remain empty unless a distinct campaign asset is deliberately approved. It must never be the AppIcon or an ordinary app screenshot.
 - Apple’s purchase-confirmation sheet is system UI and may render the AppIcon. That system-rendered icon does not violate the no-logo rule for developer-controlled commerce screens; document the distinction in review notes when it could prevent reviewer confusion.
-- Review notes must be current, concise and testable: identify the exact build and product, explain how to reach the paywall, state what free and paid users receive, describe restore/management and lapse behavior, and disclose material data, account, advertising and physical-goods boundaries.
+- Review notes must be current, concise and testable: identify the exact build and product, explain how to reach the direct subscription action, state what free and paid users receive, describe restore/management and lapse behavior, and disclose material data, account, advertising and physical-goods boundaries.
 - Attaching a build, screenshot or reviewer video is not submission. Stop before Add for Review or Submit unless the user explicitly authorizes that separate external action.
 
 ## Ad-free and advertising products
