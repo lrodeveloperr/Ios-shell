@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ShellRootView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     private let featureProvider: any FeatureCanvasProviding
     @State private var model: ShellModel
     @State private var legalConsent: LegalConsentStore
@@ -100,16 +101,46 @@ struct ShellRootView: View {
     private var shell: some View {
         if ShellConfiguration.destinations.count == 1, let destination = ShellConfiguration.destinations.first {
             destinationStack(destination)
+        } else if horizontalSizeClass == .regular {
+            splitViewShell
         } else {
-            TabView(selection: $model.selectedDestination) {
-                ForEach(ShellConfiguration.destinations) { destination in
-                    destinationStack(destination)
+            tabViewShell
+        }
+    }
+
+    /// iPhone, and iPad in a compact multitasking width: a native bottom tab
+    /// bar, one tab per destination.
+    private var tabViewShell: some View {
+        TabView(selection: $model.selectedDestination) {
+            ForEach(ShellConfiguration.destinations) { destination in
+                destinationStack(destination)
                     .tag(destination.id)
                     .tabItem { Label(LocalizedStringKey(destination.titleKey), systemImage: destination.symbol) }
-                }
             }
-            .tabViewStyle(.sidebarAdaptable)
         }
+    }
+
+    /// iPad and Mac at regular width: a native sidebar plus detail column.
+    private var splitViewShell: some View {
+        NavigationSplitView {
+            List(ShellConfiguration.destinations, selection: selectionBinding) { destination in
+                Label(LocalizedStringKey(destination.titleKey), systemImage: destination.symbol)
+                    .tag(destination.id)
+            }
+            .listStyle(.sidebar)
+            .navigationTitle(Text(ShellConfiguration.appName))
+        } detail: {
+            if let destination = ShellConfiguration.destinations.first(where: { $0.id == model.selectedDestination }) {
+                destinationStack(destination)
+            }
+        }
+    }
+
+    private var selectionBinding: Binding<String?> {
+        Binding(
+            get: { model.selectedDestination },
+            set: { model.selectedDestination = $0 ?? model.selectedDestination }
+        )
     }
 
     private func destinationStack(_ destination: ShellDestination) -> some View {
