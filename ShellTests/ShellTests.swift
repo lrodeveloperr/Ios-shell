@@ -131,6 +131,13 @@ final class ShellTests: XCTestCase {
         XCTAssertEqual(Set(ShellConfiguration.destinations.map(\.id)).count, ShellConfiguration.destinations.count)
         XCTAssertTrue(ShellConfiguration.supportedLanguages.contains { $0.id == "system" })
         XCTAssertTrue(ShellConfiguration.supportedLanguages.contains { $0.id == "en" })
+        XCTAssertTrue(ShellConfiguration.supportedLanguages.contains { $0.id == "ja" })
+    }
+
+    func testJapaneseResolvesAsLeftToRightAndMatchesRegionVariants() {
+        XCTAssertEqual(LanguageController.closestSupported(to: "ja-JP"), "ja")
+        XCTAssertEqual(LanguageController.closestSupported(to: "ja"), "ja")
+        XCTAssertFalse(SupportedLocaleResolver.isRightToLeft("ja-JP"))
     }
 
     func testLanguageSelectionRejectsStaleUnsupportedValues() {

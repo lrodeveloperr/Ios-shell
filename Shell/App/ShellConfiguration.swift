@@ -46,6 +46,7 @@ enum ShellConfiguration {
         .init(id: "system", displayName: "Follow system"),
         .init(id: "en", displayName: "English"),
         .init(id: "es", displayName: "Español"),
+        .init(id: "ja", displayName: "日本語"),
     ]
 }
 
