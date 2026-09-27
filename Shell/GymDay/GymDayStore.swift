@@ -11,7 +11,9 @@ import SwiftData
 final class GymDayStore {
     private(set) var snapshot: EngineSnapshot?
     private(set) var startupError: String?
+    private(set) var setupError: String?
     private var engine: GymDayEngine?
+    private var catalog: MovementCatalog?
 
     func start() async {
         guard engine == nil else { return }
@@ -27,6 +29,7 @@ final class GymDayStore {
             )
             let repository = SwiftDataEngineRepository(modelContainer: modelContainer)
             let catalog = try MovementCatalog.launchCatalog()
+            self.catalog = catalog
             let engine = try await GymDayEngine.open(repository: repository, catalog: catalog, now: Date())
             self.engine = engine
             snapshot = await engine.currentSnapshot()
@@ -38,6 +41,66 @@ final class GymDayStore {
     func refresh() async {
         guard let engine else { return }
         snapshot = await engine.currentSnapshot()
+    }
+
+    /// The Japanese display name for a movement ID, e.g. from a
+    /// `StrengthPrescription`. Falls back to the raw ID if the catalog
+    /// hasn't loaded or somehow doesn't contain it.
+    func movementName(for id: String) -> String {
+        catalog?.movement(id: id)?.japaneseName ?? id
+    }
+
+    var activeProgram: TrainingProgram? {
+        snapshot?.programs.first { $0.status == .active }
+    }
+
+    /// The active program's session scheduled for today, or - if none lands
+    /// exactly today - the next upcoming one. `nil` means a genuine rest day
+    /// (or the program has no more sessions).
+    var todaysSession: PlannedSession? {
+        guard let activeProgram else { return nil }
+        let allSessions = activeProgram.weeks.flatMap(\.sessions)
+        let calendar = Calendar.current
+        if let today = allSessions.first(where: { calendar.isDateInToday($0.scheduledDate) }) {
+            return today
+        }
+        return allSessions
+            .filter { $0.scheduledDate > Date() }
+            .min { $0.scheduledDate < $1.scheduledDate }
+    }
+
+    /// First-run setup: creates the profile, then immediately generates and
+    /// activates a 6-week program from it. Minimal on purpose - length,
+    /// multiple profiles and preferred cardio machines aren't exposed yet.
+    func createProfileAndProgram(
+        goal: Goal,
+        experience: ExperienceLevel,
+        availableDays: Set<Weekday>,
+        targetSessionMinutes: Int,
+        equipment: Set<Equipment>
+    ) async {
+        guard let engine else { return }
+        setupError = nil
+        do {
+            let profile = try GymProfile(
+                goal: goal,
+                experience: experience,
+                availableDays: availableDays,
+                targetSessionMinutes: targetSessionMinutes,
+                equipment: equipment,
+                preferredCardio: []
+            )
+            _ = try await engine.addProfile(profile)
+            _ = try await engine.createProgram(
+                profileID: profile.id,
+                length: .six,
+                startDate: Date(),
+                namespace: "gymday.default"
+            )
+            snapshot = await engine.currentSnapshot()
+        } catch {
+            setupError = error.localizedDescription
+        }
     }
 
     /// Bridges the shell's verified StoreKit state into the engine's own

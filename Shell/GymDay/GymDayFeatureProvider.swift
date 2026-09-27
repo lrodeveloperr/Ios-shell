@@ -2,11 +2,39 @@ import GymDayCore
 import SwiftUI
 
 /// The product-side implementation of the shell's one extension point.
-/// Real Today/Programs/Progress/Routines screens are separate, not-yet-
-/// started work; this proves the engine is actually reachable from the UI.
+/// "today" is real, backed by the engine; Programs/Progress/Routines are
+/// still a live placeholder - separate, not-yet-started work.
 struct GymDayFeatureProvider: FeatureCanvasProviding {
     func makeCanvas(for destination: ShellDestination, context: FeatureCanvasContext) -> AnyView {
-        AnyView(GymDayDestinationPlaceholder(destination: destination))
+        if destination.id == "today" {
+            return AnyView(TodayRouterView())
+        }
+        return AnyView(GymDayDestinationPlaceholder(destination: destination))
+    }
+}
+
+/// Routes "today" between first-run setup and the real Today content,
+/// based on whether a profile exists yet.
+private struct TodayRouterView: View {
+    @Environment(GymDayStore.self) private var store
+
+    var body: some View {
+        if let startupError = store.startupError {
+            ContentUnavailableView {
+                Label("error.title", systemImage: "exclamationmark.triangle")
+            } description: {
+                Text(startupError)
+            }
+        } else if let snapshot = store.snapshot {
+            if snapshot.profiles.isEmpty {
+                GymDaySetupView()
+            } else {
+                TodayView()
+            }
+        } else {
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 }
 
