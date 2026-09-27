@@ -117,6 +117,7 @@ struct ShellRootView: View {
             FeatureCanvasHost(destination: destination, provider: featureProvider)
                 .safeAreaInset(edge: .bottom, spacing: 0) { adBanner }
                 .navigationTitle(Text(LocalizedStringKey(destination.titleKey)))
+                .navigationBarTitleDisplayMode(destination.titleDisplayMode.swiftUIValue)
                 .shellSettingsToolbar()
         }
     }

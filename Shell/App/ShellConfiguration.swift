@@ -95,9 +95,45 @@ struct ShellDestination: Hashable, Identifiable, Sendable {
     let id: String
     let titleKey: String
     let symbol: String
+    /// Defaults to `.large`, matching every existing derived app unchanged.
+    /// See "Navigation and adaptation" in AGENTS.md before choosing `.inline`.
+    var titleDisplayMode: DestinationTitleDisplayMode = .large
+
+    init(id: String, titleKey: String, symbol: String, titleDisplayMode: DestinationTitleDisplayMode = .large) {
+        self.id = id
+        self.titleKey = titleKey
+        self.symbol = symbol
+        self.titleDisplayMode = titleDisplayMode
+    }
 
     static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
+}
+
+/// A Sendable-safe mirror of `NavigationBarItem.TitleDisplayMode` so
+/// `ShellConfiguration.destinations` stays a plain, testable value type.
+///
+/// Large titles are Apple's default for a top-level/tab-root screen and cost
+/// roughly 50pt of vertical space versus inline; that's the right trade for a
+/// spacious, Western-leaning product. It's the wrong trade for a product
+/// whose target market or content density wants that space back — e.g. an
+/// app localized for a market where dense information reads as trustworthy
+/// rather than sparse reads as calm (see the Japanese-market density
+/// discussion in this app's own design notes: generous whitespace there can
+/// read as unfinished, not elegant). Choose per destination, not globally;
+/// a single derived app can reasonably mix both.
+enum DestinationTitleDisplayMode: Sendable {
+    case automatic
+    case large
+    case inline
+
+    var swiftUIValue: NavigationBarItem.TitleDisplayMode {
+        switch self {
+        case .automatic: .automatic
+        case .large: .large
+        case .inline: .inline
+        }
+    }
 }
 
 struct AppLanguage: Identifiable, Hashable, Sendable {
