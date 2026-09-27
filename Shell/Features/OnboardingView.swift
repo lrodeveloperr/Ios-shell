@@ -36,6 +36,7 @@ struct OnboardingView: View {
                                 .multilineTextAlignment(.leading)
                             Spacer(minLength: 0)
                         }
+                        .frame(minHeight: 44)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
