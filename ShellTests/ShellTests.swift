@@ -125,6 +125,21 @@ final class ShellTests: XCTestCase {
         XCTAssertTrue(configuration(.adsWithSubscription).includesSubscription)
     }
 
+    func testSecondarySubscriptionProductIDsAreAdditiveAndDefaultEmpty() {
+        XCTAssertTrue(configuration(.subscription).secondarySubscriptionProductIDs.isEmpty)
+        XCTAssertEqual(configuration(.subscription).productIDs, ["monthly"])
+
+        let dualProduct = MonetizationConfiguration(
+            mode: .subscription,
+            freeSuccessfulActions: 3,
+            lifetimeProductID: "lifetime",
+            subscriptionProductID: "monthly",
+            secondarySubscriptionProductIDs: ["annual"]
+        )
+        XCTAssertEqual(dualProduct.productIDs, ["monthly", "annual"])
+        XCTAssertTrue(dualProduct.includesSubscription)
+    }
+
     func testTemplateNavigationAndLanguagesAreBounded() {
         XCTAssertFalse(ShellConfiguration.destinations.isEmpty)
         XCTAssertLessThanOrEqual(ShellConfiguration.destinations.count, 5)

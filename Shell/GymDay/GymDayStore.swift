@@ -46,9 +46,9 @@ final class GymDayStore {
     /// Bridges the shell's verified StoreKit state into the engine's own
     /// entitlement vocabulary. Deliberately binary (free/pro): GymDayCore's
     /// richer `.expired` + `currentWeekGraceThrough` soft-landing policy
-    /// (see `StoreKitEntitlementResolver` in GymDayAppleAdapters) needs real
-    /// monthly/annual product IDs and active-program week tracking that
-    /// don't exist yet - that's separate, later work, not approximated here.
+    /// (see `StoreKitEntitlementResolver` in GymDayAppleAdapters) still needs
+    /// a notion of the active program's current week, which doesn't exist
+    /// yet - that's separate, later work, not approximated here.
     func syncEntitlement(from access: AccessController) async {
         guard let engine else { return }
         let purchases = access.purchases
@@ -59,7 +59,14 @@ final class GymDayStore {
         if purchases.isEntitled {
             tier = .pro
             if access.configuration.includesSubscription {
-                productID = access.configuration.subscriptionProductID
+                // Report whichever product actually granted access (monthly
+                // or annual), not always the configured primary/default.
+                switch purchases.entitlementState {
+                case let .entitled(productIDs), let .offlineCached(productIDs):
+                    productID = productIDs.first ?? access.configuration.subscriptionProductID
+                case .checking, .notEntitled:
+                    productID = access.configuration.subscriptionProductID
+                }
                 switch purchases.subscriptionCondition {
                 case let .subscribed(_, expirationDate),
                      let .gracePeriod(expirationDate),

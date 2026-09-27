@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 struct ShellRootView: View {
@@ -64,6 +65,18 @@ struct ShellRootView: View {
                 .environment(\.layoutDirection, model.language.layoutDirection)
         }
         .manageSubscriptionsSheet(isPresented: $model.manageSubscriptionsPresented)
+        .confirmationDialog(
+            "subscription.subscribe",
+            isPresented: $model.subscriptionOptionsPresented,
+            titleVisibility: .visible
+        ) {
+            ForEach(model.access.purchases.subscriptionOptions, id: \.id) { product in
+                Button("\(product.displayName) — \(product.displayPrice)") {
+                    Task { await model.access.purchases.purchase(productID: product.id) }
+                }
+            }
+            Button("cancel", role: .cancel) {}
+        }
         .alert("store", isPresented: subscriptionErrorBinding) {
             Button("ok") {}
         } message: {

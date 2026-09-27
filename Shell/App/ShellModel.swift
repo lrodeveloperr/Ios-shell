@@ -13,6 +13,7 @@ final class ShellModel {
 #endif
     var paywallPresented = false
     var manageSubscriptionsPresented = false
+    var subscriptionOptionsPresented = false
     private(set) var isRequestingUpgrade = false
     var startupMessage: String?
 
@@ -49,8 +50,11 @@ final class ShellModel {
         await access.purchases.start()
     }
 
-    /// Subscription entry points start the StoreKit purchase directly. The
-    /// app-owned paywall remains available for one-time purchases only.
+    /// Subscription entry points start the StoreKit purchase directly, or -
+    /// only when more than one subscription option is configured (e.g.
+    /// monthly + annual) - present a minimal native picker first so the user
+    /// chooses which one. The app-owned paywall remains available for
+    /// one-time purchases only.
     func requestUpgrade() {
         guard access.configuration.includesPurchase else { return }
         guard access.configuration.includesSubscription else {
@@ -69,7 +73,9 @@ final class ShellModel {
             if self.access.purchases.primaryProduct == nil {
                 await self.access.purchases.start()
             }
-            if self.access.purchases.primaryProduct != nil {
+            if self.access.purchases.subscriptionOptions.count > 1 {
+                self.subscriptionOptionsPresented = true
+            } else if self.access.purchases.primaryProduct != nil {
                 await self.access.purchases.purchasePrimary()
             } else if !self.access.purchases.showingError {
                 await self.access.purchases.purchasePrimary()

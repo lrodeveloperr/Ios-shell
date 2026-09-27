@@ -1,10 +1,14 @@
 import SwiftUI
 
 enum ShellConfiguration {
-    static let appName = "Shell"
-    static let tint = Color.indigo
+    static let appName = "GymDay"
+    /// #BC002D - researched and confirmed earlier as culturally appropriate
+    /// for the Japanese market (kouhaku red/white pairing), not a default pick.
+    static let tint = Color(red: 0.737, green: 0.0, blue: 0.176)
+    // TODO: replace with GymDay's real support address before release.
     static let supportEmail = "support@example.com"
 
+    // TODO: replace with GymDay's real, published legal documents before release.
     static let legal = LegalConfiguration(
         version: "1",
         privacyURL: URL(string: "https://example.com/#replace-with-privacy-policy")!,
@@ -15,11 +19,14 @@ enum ShellConfiguration {
     /// Published legal links alone do not require a blocking acceptance screen.
     static let onboarding: OnboardingProfile? = .legalOnly
 
+    // TODO: replace shell.pro.* with GymDay's real App Store Connect product
+    // IDs once its subscription group exists there.
     static let monetization = MonetizationConfiguration(
         mode: .usageCapWithSubscription,
         freeSuccessfulActions: 5,
         lifetimeProductID: "shell.pro.lifetime",
-        subscriptionProductID: "shell.pro.monthly"
+        subscriptionProductID: "shell.pro.monthly",
+        secondarySubscriptionProductIDs: ["shell.pro.annual"]
     )
 
     static let advertising = AdvertisingConfiguration(
@@ -75,13 +82,34 @@ struct MonetizationConfiguration: Sendable {
     let freeSuccessfulActions: Int
     let lifetimeProductID: String
     let subscriptionProductID: String
+    /// Additional products in the same App Store Connect subscription group
+    /// as `subscriptionProductID` (e.g. an annual option alongside monthly).
+    /// Empty by default, so every existing single-product derived app is
+    /// unaffected. `PurchaseService.subscriptionOptions` surfaces these for
+    /// a picker; `subscriptionProductID` alone still drives `primaryProduct`
+    /// and every existing single-product call site.
+    let secondarySubscriptionProductIDs: Set<String>
+
+    init(
+        mode: MonetizationMode,
+        freeSuccessfulActions: Int,
+        lifetimeProductID: String,
+        subscriptionProductID: String,
+        secondarySubscriptionProductIDs: Set<String> = []
+    ) {
+        self.mode = mode
+        self.freeSuccessfulActions = freeSuccessfulActions
+        self.lifetimeProductID = lifetimeProductID
+        self.subscriptionProductID = subscriptionProductID
+        self.secondarySubscriptionProductIDs = secondarySubscriptionProductIDs
+    }
 
     var productIDs: Set<String> {
         switch mode {
         case .adsWithRemovePurchase, .oneTimeUnlock, .usageCapWithOneTimeUnlock:
             [lifetimeProductID]
         case .adsWithSubscription, .subscription, .usageCapWithSubscription:
-            [subscriptionProductID]
+            [subscriptionProductID].union(secondarySubscriptionProductIDs)
         case .free, .ads:
             []
         }

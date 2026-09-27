@@ -113,6 +113,18 @@ final class PurchaseService {
         return products.first { $0.id == desiredID }
     }
 
+    /// Every loaded product in `subscriptionProductID`'s group, primary
+    /// option first, each carrying its own live `Product.displayPrice`.
+    /// Empty unless `secondarySubscriptionProductIDs` is non-empty, so a
+    /// single-product derived app never sees more than `primaryProduct`.
+    var subscriptionOptions: [Product] {
+        guard configuration.includesSubscription, !configuration.secondarySubscriptionProductIDs.isEmpty else {
+            return []
+        }
+        let ids = [configuration.subscriptionProductID] + configuration.secondarySubscriptionProductIDs.sorted()
+        return ids.compactMap { id in products.first { $0.id == id } }
+    }
+
     func start() async {
         guard !isLoadingProducts else { return }
         guard configuration.includesPurchase else {
@@ -131,8 +143,20 @@ final class PurchaseService {
     }
 
     func purchasePrimary() async {
-        guard !isPurchasing else { return }
         guard let product = primaryProduct else {
+            message = AppLocalization.string("purchase.productUnavailable", locale: AppLocalization.selectedLocale)
+            showingError = true
+            return
+        }
+        await purchase(productID: product.id)
+    }
+
+    /// Purchases a specific product from `configuration.productIDs` - e.g.
+    /// one option chosen from `subscriptionOptions`. Apple's own StoreKit
+    /// confirmation sheet, not this call, is what shows price and period.
+    func purchase(productID: String) async {
+        guard !isPurchasing else { return }
+        guard let product = products.first(where: { $0.id == productID }) else {
             message = AppLocalization.string("purchase.productUnavailable", locale: AppLocalization.selectedLocale)
             showingError = true
             return
