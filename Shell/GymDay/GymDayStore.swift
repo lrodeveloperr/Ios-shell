@@ -78,7 +78,10 @@ final class GymDayStore {
             }
         }
 
-        let entitlement = EntitlementSnapshot(
+        // Disambiguate from the shell's own EntitlementSnapshot (EntitlementCache.swift,
+        // the Keychain-backed offline-purchase cache) - same name, different module,
+        // and same-module lookup wins over the GymDayCore import without this.
+        let entitlement = GymDayCore.EntitlementSnapshot(
             tier: tier,
             productID: productID,
             verifiedThrough: verifiedThrough,
