@@ -44,9 +44,9 @@ enum ShellConfiguration {
     /// Only locales with complete app text belong here. The 31-locale shared
     /// terminology baseline is tracked separately in LocalizationBaseline.swift.
     static let supportedLanguages: [AppLanguage] = [
-        .init(id: "system", displayName: "Follow system"),
+        .init(id: "system", displayName: "システムの言語に従う"),
+        .init(id: "ja", displayName: "日本語"),
         .init(id: "en", displayName: "English"),
-        .init(id: "es", displayName: "Español"),
     ]
 }
 

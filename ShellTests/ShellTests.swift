@@ -131,6 +131,7 @@ final class ShellTests: XCTestCase {
         XCTAssertEqual(Set(ShellConfiguration.destinations.map(\.id)).count, ShellConfiguration.destinations.count)
         XCTAssertTrue(ShellConfiguration.supportedLanguages.contains { $0.id == "system" })
         XCTAssertTrue(ShellConfiguration.supportedLanguages.contains { $0.id == "en" })
+        XCTAssertTrue(ShellConfiguration.supportedLanguages.contains { $0.id == "ja" })
     }
 
     func testLanguageSelectionRejectsStaleUnsupportedValues() {
@@ -138,8 +139,9 @@ final class ShellTests: XCTestCase {
         defaults.set("fr", forKey: "shell.language")
         let language = LanguageController(defaults: defaults, preferredLanguages: ["es-MX"])
         XCTAssertEqual(language.selection, "system")
-        XCTAssertEqual(LanguageController.closestSupported(to: "es-MX"), "es")
+        XCTAssertEqual(LanguageController.closestSupported(to: "es-MX"), "en")
         XCTAssertEqual(LanguageController.closestSupported(to: "fr-CA"), "en")
+        XCTAssertEqual(LanguageController.closestSupported(to: "ja-JP"), "ja")
         XCTAssertTrue(SupportedLocaleResolver.isRightToLeft("ar-SA"))
         XCTAssertTrue(SupportedLocaleResolver.isRightToLeft("ur_PK"))
         XCTAssertFalse(SupportedLocaleResolver.isRightToLeft("en-US"))
