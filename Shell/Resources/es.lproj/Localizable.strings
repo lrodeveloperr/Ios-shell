@@ -1,6 +1,7 @@
-"destination.home" = "Inicio";
-"destination.library" = "Biblioteca";
-"destination.activity" = "Actividad";
+"destination.today" = "Hoy";
+"destination.programs" = "Programas";
+"destination.progress" = "Progreso";
+"destination.routines" = "Rutinas";
 "settings" = "Ajustes";
 "done" = "Listo";
 "ok" = "Aceptar";

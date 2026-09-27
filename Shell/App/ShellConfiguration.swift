@@ -35,9 +35,10 @@ enum ShellConfiguration {
     static let migrations: [ShellMigration] = []
 
     static let destinations: [ShellDestination] = [
-        .init(id: "home", titleKey: "destination.home", symbol: "house"),
-        .init(id: "library", titleKey: "destination.library", symbol: "tray.full"),
-        .init(id: "activity", titleKey: "destination.activity", symbol: "chart.xyaxis.line"),
+        .init(id: "today", titleKey: "destination.today", symbol: "house"),
+        .init(id: "programs", titleKey: "destination.programs", symbol: "calendar"),
+        .init(id: "progress", titleKey: "destination.progress", symbol: "chart.bar.fill"),
+        .init(id: "routines", titleKey: "destination.routines", symbol: "list.bullet"),
     ]
 
     /// Only locales with complete app text belong here. The 31-locale shared
