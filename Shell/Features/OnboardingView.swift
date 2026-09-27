@@ -24,10 +24,21 @@ struct OnboardingView: View {
                 Spacer(minLength: 32)
 
                 if showsAcceptance {
-                    Toggle(isOn: $accepted) {
-                        Text("onboarding.accept")
+                    Button {
+                        accepted.toggle()
+                    } label: {
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: accepted ? "checkmark.square.fill" : "square")
+                                .font(.title2)
+                                .foregroundStyle(accepted ? Color.accentColor : .secondary)
+                            Text("onboarding.accept")
+                                .foregroundStyle(.primary)
+                                .multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
+                        }
+                        .contentShape(Rectangle())
                     }
-                    .toggleStyle(CheckboxToggleStyle())
+                    .buttonStyle(.plain)
                     .accessibilityHint(Text("onboarding.accept.hint"))
                     .accessibilityIdentifier("shell.onboarding.accept")
                 }
@@ -108,24 +119,4 @@ struct OnboardingView: View {
 private struct OnboardingPage {
     let titleKey: LocalizedStringKey
     let messageKey: LocalizedStringKey
-}
-
-private struct CheckboxToggleStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        Button {
-            configuration.isOn.toggle()
-        } label: {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                    .font(.title2)
-                    .foregroundStyle(configuration.isOn ? Color.accentColor : .secondary)
-                configuration.label
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.leading)
-                Spacer(minLength: 0)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
 }
