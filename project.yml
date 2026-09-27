@@ -9,6 +9,8 @@ packages:
   GoogleMobileAds:
     url: https://github.com/googleads/swift-package-manager-google-mobile-ads.git
     from: 13.0.0
+  GymDayEngine:
+    path: Vendor/gym-ios/GymDayEngine
 targetTemplates:
   ShellApplication:
     type: application
@@ -36,6 +38,11 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.goodusestudios.shelllab
         INFOPLIST_FILE: Shell/Resources/Info.plist
+    dependencies:
+      - package: GymDayEngine
+        product: GymDayCore
+      - package: GymDayEngine
+        product: GymDayAppleAdapters
   # Select this target only for a reviewed ad-supported derived app.
   ShellAds:
     templates: [ShellApplication]
@@ -45,6 +52,10 @@ targets:
         INFOPLIST_FILE: Shell/Resources/Info-Ads.plist
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) ADS_ENABLED"
     dependencies:
+      - package: GymDayEngine
+        product: GymDayCore
+      - package: GymDayEngine
+        product: GymDayAppleAdapters
       - package: GoogleMobileAds
         product: GoogleMobileAds
   ShellTests:

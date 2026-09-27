@@ -12,6 +12,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: true
       - name: Select Xcode and install tools
         run: |
           if [[ -d /Applications/Xcode_26.6.app ]]; then sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer; fi

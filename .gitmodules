@@ -1,0 +1,3 @@
+[submodule "Vendor/gym-ios"]
+	path = Vendor/gym-ios
+	url = https://github.com/lrodeveloperr/gym-ios
