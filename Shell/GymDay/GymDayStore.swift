@@ -6,9 +6,6 @@ import SwiftData
 
 /// MainActor-observable wrapper around the `GymDayEngine` actor so SwiftUI
 /// views can bind to its state the same way they bind to `ShellModel`.
-///
-/// The movement catalog is still empty - real movement content is separate,
-/// not-yet-started work.
 @MainActor
 @Observable
 final class GymDayStore {
@@ -29,7 +26,7 @@ final class GymDayStore {
                 configurations: [configuration]
             )
             let repository = SwiftDataEngineRepository(modelContainer: modelContainer)
-            let catalog = try MovementCatalog(movements: [])
+            let catalog = try MovementCatalog.launchCatalog()
             let engine = try await GymDayEngine.open(repository: repository, catalog: catalog, now: Date())
             self.engine = engine
             snapshot = await engine.currentSnapshot()

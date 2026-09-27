@@ -109,7 +109,7 @@ struct MonetizationConfiguration: Sendable {
         case .adsWithRemovePurchase, .oneTimeUnlock, .usageCapWithOneTimeUnlock:
             [lifetimeProductID]
         case .adsWithSubscription, .subscription, .usageCapWithSubscription:
-            [subscriptionProductID].union(secondarySubscriptionProductIDs)
+            Set([subscriptionProductID]).union(secondarySubscriptionProductIDs)
         case .free, .ads:
             []
         }
