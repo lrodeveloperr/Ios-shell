@@ -25,7 +25,7 @@ private struct GymDayDestinationPlaceholder: View {
                 if let startupError = store.startupError {
                     Text(startupError).foregroundStyle(.red)
                 } else if let snapshot = store.snapshot {
-                    Text("\(snapshot.profiles.count) profile(s), \(snapshot.programs.count) program(s)")
+                    Text("\(snapshot.profiles.count) profile(s), \(snapshot.programs.count) program(s) · \(snapshot.entitlement.tier.rawValue)")
                 } else {
                     ProgressView()
                 }
