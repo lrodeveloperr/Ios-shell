@@ -30,7 +30,7 @@ Reviewed against Apple’s official material on **2026-09-02**. Apple’s App Re
 ## Purchases and subscriptions
 
 - [ ] Digital features/content use StoreKit In-App Purchase unless a current guideline exception applies and is documented.
-- [ ] Before confirmation, the app explains the exact paid benefit and Apple’s system purchase sheet presents the current localized subscription price and billing period. Subscription entry buttons have no price and invoke StoreKit directly; do not hard-code a storefront price.
+- [ ] Before confirmation, the app explains the exact paid benefit. The shell commerce surface shows the current StoreKit subscription name, full localized renewal price and billing period before Subscribe invokes Apple’s system confirmation; do not hard-code a storefront price or period.
 - [ ] Auto-renewal and any trial or offer terms are clear in the Apple purchase flow; Privacy and Terms of Use are reachable beside the entry point in Settings; subscription grouping prevents accidental duplicate subscriptions.
 - [ ] Restore is visible for restorable purchases. Pending, cancelled, unverified, expired, refunded or revoked transactions never unlock access.
 - [ ] Product-loading failure ends in a localized retry state and never leaves a permanent loading indicator.
