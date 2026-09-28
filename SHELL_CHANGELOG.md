@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- Removed the app-owned subscription paywall from every shell upgrade entry point. Subscription controls now invoke StoreKit’s purchase confirmation directly with no app-owned price text and with the StoreKit product description alongside the action; Settings retains restore, legal and subscription management. One-time purchases retain their paywall. Added direct-flow busy, retry and error states and updated the release guidance.
+- Completed the 2026-09-28 iOS 18 shell audit: top-level navigation now uses the iOS 18 `Tab(value:content:label:)` API with per-scene selection restoration; list-detail features can opt into a shell-owned `NavigationSplitView` instead of manual width breakpoints; iPad regression coverage now exercises the detail path.
+- Corrected the subscription flow after re-reviewing Apple’s current subscription guidance. New subscription purchases now enter a transparent shell commerce surface that shows the live StoreKit product name, full localized renewal price, billing period and exact benefit before Apple confirmation; Restore, Privacy and Terms remain reachable.
+- Hardened system-language/RTL fallback, destructive backup confirmation and single-flight behavior, UMP recovery from consent-refresh errors, neutral launch-screen presentation and validator portability.
 
 - Made in-app locale resolution region/script-aware, mirrored the complete shell when an RTL language is selected independently of the device language, and strengthened the localization gate so machine-generated drafts, English exonyms and blanket cultural-review claims cannot qualify a locale for release.
 - Made Settings subscription rows lifecycle-aware: inactive/expired/revoked customers no longer see a success badge or Manage Subscription, checking is neutral, active/recoverable states keep management, and legal button typography can no longer inherit the app tint. Added upstream zero-placeholder, live-localization and Settings-state regression gates.
