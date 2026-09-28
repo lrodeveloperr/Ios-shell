@@ -2,15 +2,18 @@ import GymDayCore
 import SwiftUI
 
 /// The product-side implementation of the shell's one extension point.
-/// "today" is real, backed by the engine; Programs/Progress/Routines are
-/// still a live placeholder - separate, not-yet-started work.
+/// All four destinations are real, backed by the engine.
 struct GymDayFeatureProvider: FeatureCanvasProviding {
     func makeCanvas(for destination: ShellDestination, context: FeatureCanvasContext) -> AnyView {
         switch destination.id {
         case "today":
             return AnyView(TodayRouterView())
+        case "programs":
+            return AnyView(GymDayProgramsView())
         case "progress":
             return AnyView(ProgressRouterView())
+        case "routines":
+            return AnyView(GymDayRoutinesView())
         default:
             return AnyView(GymDayDestinationPlaceholder(destination: destination))
         }

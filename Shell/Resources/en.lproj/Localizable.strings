@@ -153,3 +153,9 @@
 "activeWorkout.setLogged" = "Logged";
 
 "progress.needsSetup" = "Create a program from the Today tab first";
+
+"routines.empty" = "No routines yet";
+"routines.add" = "Add routine";
+"routines.name.title" = "Name";
+"routines.name.placeholder" = "e.g. Push Day";
+"routines.movements.title" = "Movements";

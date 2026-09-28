@@ -153,3 +153,9 @@
 "activeWorkout.setLogged" = "記録済み";
 
 "progress.needsSetup" = "まずは「今日」タブでプログラムを作成してください";
+
+"routines.empty" = "ルーティンがまだありません";
+"routines.add" = "ルーティンを追加";
+"routines.name.title" = "名前";
+"routines.name.placeholder" = "例: プッシュデイ";
+"routines.movements.title" = "種目";
