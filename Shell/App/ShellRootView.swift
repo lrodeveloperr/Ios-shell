@@ -2,6 +2,9 @@ import SwiftUI
 
 struct ShellRootView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @SceneStorage("shell.selectedDestination") private var selectedDestination =
+        ShellConfiguration.destinations.first?.id ?? ""
+
     private let featureProvider: any FeatureCanvasProviding
     @State private var model: ShellModel
     @State private var legalConsent: LegalConsentStore
@@ -69,6 +72,7 @@ struct ShellRootView: View {
             Text(model.access.purchases.message)
         }
         .task {
+            normalizeSelectedDestination()
             await model.start()
             if !requiresOnboarding { await model.prepareAdvertisingIfNeeded() }
         }
@@ -99,26 +103,24 @@ struct ShellRootView: View {
     @ViewBuilder
     private var shell: some View {
         if ShellConfiguration.destinations.count == 1, let destination = ShellConfiguration.destinations.first {
-            destinationStack(destination)
+            destinationHost(destination)
         } else {
-            TabView(selection: $model.selectedDestination) {
+            TabView(selection: $selectedDestination) {
                 ForEach(ShellConfiguration.destinations) { destination in
-                    destinationStack(destination)
-                    .tag(destination.id)
-                    .tabItem { Label(LocalizedStringKey(destination.titleKey), systemImage: destination.symbol) }
+                    Tab(value: destination.id) {
+                        destinationHost(destination)
+                    } label: {
+                        Label(LocalizedStringKey(destination.titleKey), systemImage: destination.symbol)
+                    }
                 }
             }
             .tabViewStyle(.sidebarAdaptable)
         }
     }
 
-    private func destinationStack(_ destination: ShellDestination) -> some View {
-        NavigationStack {
-            FeatureCanvasHost(destination: destination, provider: featureProvider)
-                .safeAreaInset(edge: .bottom, spacing: 0) { adBanner }
-                .navigationTitle(Text(LocalizedStringKey(destination.titleKey)))
-                .shellSettingsToolbar()
-        }
+    private func destinationHost(_ destination: ShellDestination) -> some View {
+        FeatureCanvasHost(destination: destination, provider: featureProvider)
+            .safeAreaInset(edge: .bottom, spacing: 0) { adBanner }
     }
 
     @ViewBuilder
@@ -134,21 +136,31 @@ struct ShellRootView: View {
                 .accessibilityIdentifier("shell.ad.slot")
         }
     }
+
+    private func normalizeSelectedDestination() {
+        guard !ShellConfiguration.destinations.contains(where: { $0.id == selectedDestination }) else { return }
+        selectedDestination = ShellConfiguration.destinations.first?.id ?? ""
+    }
 }
 
-private extension View {
-    func shellSettingsToolbar() -> some View { modifier(ShellSettingsToolbar()) }
+extension View {
+    func shellSettingsToolbar(isEnabled: Bool = true) -> some View {
+        modifier(ShellSettingsToolbar(isEnabled: isEnabled))
+    }
 }
 
-private struct ShellSettingsToolbar: ViewModifier {
+struct ShellSettingsToolbar: ViewModifier {
     @Environment(ShellModel.self) private var model
+    let isEnabled: Bool
 
     func body(content: Content) -> some View {
         content.toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("settings", systemImage: "gearshape") { model.settingsPresented = true }
-                    .labelStyle(.iconOnly)
-                    .accessibilityIdentifier("shell.settings")
+            if isEnabled {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("settings", systemImage: "gearshape") { model.settingsPresented = true }
+                        .labelStyle(.iconOnly)
+                        .accessibilityIdentifier("shell.settings")
+                }
             }
         }
     }
