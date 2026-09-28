@@ -25,9 +25,17 @@ protocol NativeBackupProviding: Sendable {
 
 struct DisabledNativeBackupProvider: NativeBackupProviding {
     let providerName = "Disabled"
-    func listBackups() async throws -> [BackupRecord] { [] }
-    func createBackup() async throws {}
-    func restoreBackup(id: String, resolution: BackupConflictResolution) async throws {}
+    func listBackups() async throws -> [BackupRecord] { throw BackupProviderError.notConfigured }
+    func createBackup() async throws { throw BackupProviderError.notConfigured }
+    func restoreBackup(id: String, resolution: BackupConflictResolution) async throws { throw BackupProviderError.notConfigured }
+}
+
+private enum BackupProviderError: LocalizedError {
+    case notConfigured
+
+    var errorDescription: String? {
+        "Backup is enabled but no backup provider is configured."
+    }
 }
 
 @MainActor
@@ -50,7 +58,8 @@ final class BackupCoordinator {
     var isEnabled: Bool { configuration.enabled }
 
     func refresh() async {
-        guard isEnabled else { return }
+        guard isEnabled, !isWorking else { return }
+        message = nil
         isWorking = true
         defer { isWorking = false }
         do { records = try await provider.listBackups() }
@@ -58,7 +67,8 @@ final class BackupCoordinator {
     }
 
     func create() async {
-        guard isEnabled else { return }
+        guard isEnabled, !isWorking else { return }
+        message = nil
         isWorking = true
         defer { isWorking = false }
         do {
@@ -68,7 +78,8 @@ final class BackupCoordinator {
     }
 
     func restore(_ record: BackupRecord, resolution: BackupConflictResolution) async {
-        guard isEnabled else { return }
+        guard isEnabled, !isWorking else { return }
+        message = nil
         isWorking = true
         defer { isWorking = false }
         do { try await provider.restoreBackup(id: record.id, resolution: resolution) }
