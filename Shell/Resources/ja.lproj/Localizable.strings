@@ -143,3 +143,11 @@
 "today.restDay" = "休息日";
 "today.startWorkout" = "トレーニングを開始";
 "today.comingSoon" = "近日公開";
+
+"activeWorkout.title" = "ワークアウト";
+"activeWorkout.finish" = "ワークアウトを終了";
+"activeWorkout.skip" = "スキップ";
+"activeWorkout.completeExercise" = "エクササイズを完了";
+"activeWorkout.logSet" = "セットを記録";
+"activeWorkout.updateSet" = "セットを更新";
+"activeWorkout.setLogged" = "記録済み";

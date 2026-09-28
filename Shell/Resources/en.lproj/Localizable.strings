@@ -143,3 +143,11 @@
 "today.restDay" = "Rest day";
 "today.startWorkout" = "Start workout";
 "today.comingSoon" = "Coming soon";
+
+"activeWorkout.title" = "Workout";
+"activeWorkout.finish" = "Finish workout";
+"activeWorkout.skip" = "Skip";
+"activeWorkout.completeExercise" = "Complete exercise";
+"activeWorkout.logSet" = "Log set";
+"activeWorkout.updateSet" = "Update set";
+"activeWorkout.setLogged" = "Logged";

@@ -12,8 +12,19 @@ final class GymDayStore {
     private(set) var snapshot: EngineSnapshot?
     private(set) var startupError: String?
     private(set) var setupError: String?
+    private(set) var activeSession: WorkoutSessionRecord?
+    private(set) var activeWorkoutError: String?
     private var engine: GymDayEngine?
     private var catalog: MovementCatalog?
+    private let device = DeviceIdentity(id: GymDayStore.loadOrCreateDeviceID(), kind: .phone)
+
+    private static func loadOrCreateDeviceID() -> String {
+        let key = "gymday.deviceID"
+        if let existing = UserDefaults.standard.string(forKey: key) { return existing }
+        let created = UUID().uuidString
+        UserDefaults.standard.set(created, forKey: key)
+        return created
+    }
 
     func start() async {
         guard engine == nil else { return }
@@ -101,6 +112,119 @@ final class GymDayStore {
         } catch {
             setupError = error.localizedDescription
         }
+    }
+
+    /// The laterality rule for a movement, used to build a `StrengthSetEntry`
+    /// with the correct total-repetitions computation.
+    func laterality(for movementID: String) -> LateralityRule {
+        catalog?.movement(id: movementID)?.laterality ?? .totalRepetitions
+    }
+
+    /// Prepares (or resumes) today's session and records its `.start` event.
+    func startWorkout(plannedSessionID: UUID, programID: UUID) async {
+        guard let engine else { return }
+        activeWorkoutError = nil
+        do {
+            let seed = try await engine.prepareSession(plannedSessionID: plannedSessionID, programID: programID)
+            let record = try await engine.record(
+                action: .start,
+                sessionID: seed.id,
+                device: device,
+                occurredAt: Date(),
+                activeElapsedSeconds: 0
+            )
+            activeSession = record
+            snapshot = await engine.currentSnapshot()
+        } catch {
+            activeWorkoutError = error.localizedDescription
+        }
+    }
+
+    @discardableResult
+    func logSet(itemID: UUID, entry: StrengthSetEntry) async -> Bool {
+        guard let engine, let activeSession else { return false }
+        do {
+            let record = try await engine.record(
+                action: .upsertStrengthSet(itemID: itemID, entry: entry),
+                sessionID: activeSession.id,
+                device: device,
+                occurredAt: Date(),
+                activeElapsedSeconds: activeSession.activeElapsedSeconds
+            )
+            self.activeSession = record
+            snapshot = await engine.currentSnapshot()
+            return true
+        } catch {
+            activeWorkoutError = error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
+    func completeItem(itemID: UUID) async -> Bool {
+        guard let engine, let activeSession else { return false }
+        do {
+            let record = try await engine.record(
+                action: .completeItem(itemID: itemID),
+                sessionID: activeSession.id,
+                device: device,
+                occurredAt: Date(),
+                activeElapsedSeconds: activeSession.activeElapsedSeconds
+            )
+            self.activeSession = record
+            snapshot = await engine.currentSnapshot()
+            return true
+        } catch {
+            activeWorkoutError = error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
+    func skipItem(itemID: UUID) async -> Bool {
+        guard let engine, let activeSession else { return false }
+        do {
+            let record = try await engine.record(
+                action: .classifyItem(itemID: itemID, disposition: .skipped),
+                sessionID: activeSession.id,
+                device: device,
+                occurredAt: Date(),
+                activeElapsedSeconds: activeSession.activeElapsedSeconds
+            )
+            self.activeSession = record
+            snapshot = await engine.currentSnapshot()
+            return true
+        } catch {
+            activeWorkoutError = error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
+    func finishWorkout() async -> Bool {
+        guard let engine, let activeSession else { return false }
+        do {
+            let record = try await engine.record(
+                action: .finish,
+                sessionID: activeSession.id,
+                device: device,
+                occurredAt: Date(),
+                activeElapsedSeconds: activeSession.activeElapsedSeconds
+            )
+            self.activeSession = record
+            snapshot = await engine.currentSnapshot()
+            return true
+        } catch {
+            activeWorkoutError = error.localizedDescription
+            return false
+        }
+    }
+
+    /// Clears the in-progress workout from view state after a successful
+    /// finish. The engine's own record of it is untouched.
+    func endActiveWorkout() {
+        activeSession = nil
+        activeWorkoutError = nil
     }
 
     /// Bridges the shell's verified StoreKit state into the engine's own

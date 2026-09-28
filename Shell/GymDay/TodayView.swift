@@ -2,28 +2,22 @@ import GymDayCore
 import SwiftUI
 
 /// The real Today screen: today's scheduled session from the active
-/// program, or a rest-day state. Starting the workout isn't built yet
-/// (ActiveWorkout/SetLogging are separate, later work), so the button
-/// currently just says so rather than doing nothing silently.
+/// program, or a rest-day state.
 struct TodayView: View {
     @Environment(GymDayStore.self) private var store
-    @State private var showsComingSoonAlert = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                if let session = store.todaysSession {
+                if let session = store.todaysSession, let program = store.activeProgram {
                     sessionCard(session)
-                    startButton
+                    startButton(session: session, program: program)
                 } else {
                     restDayCard
                 }
             }
             .padding()
             .frame(maxWidth: .infinity)
-        }
-        .alert("today.comingSoon", isPresented: $showsComingSoonAlert) {
-            Button("ok") {}
         }
     }
 
@@ -55,7 +49,7 @@ struct TodayView: View {
             }
         case let .cardio(prescription):
             HStack {
-                Text(Self.cardioLabel(prescription.machine))
+                Text(GymDayDisplay.cardioLabel(prescription.machine))
                     .font(.subheadline.weight(.semibold))
                 Spacer()
                 Text("\(prescription.targetDurationSeconds / 60)分")
@@ -65,20 +59,9 @@ struct TodayView: View {
         }
     }
 
-    private static func cardioLabel(_ machine: CardioMachine) -> String {
-        switch machine {
-        case .treadmill: "トレッドミル"
-        case .stationaryBike: "バイク"
-        case .rower: "ローイングマシン"
-        case .stairClimber: "ステアクライマー"
-        case .elliptical: "エリプティカル"
-        case .custom: "カーディオ"
-        }
-    }
-
-    private var startButton: some View {
-        Button {
-            showsComingSoonAlert = true
+    private func startButton(session: PlannedSession, program: TrainingProgram) -> some View {
+        NavigationLink {
+            ActiveWorkoutView(plannedSessionID: session.id, programID: program.id)
         } label: {
             Text("today.startWorkout")
                 .frame(maxWidth: .infinity)
