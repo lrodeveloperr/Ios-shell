@@ -129,8 +129,21 @@ if [[ "$mode" == "--release" || "$mode" == "--release-ads" ]]; then
   reject_text Shell/Resources/es.lproj/Localizable.strings 'Usa la función sin límites.'
   reject_text Shell/Resources/es.lproj/Localizable.strings 'Acciones principales ilimitadas'
   reject_text Shell/App/ShellApp.swift 'PlaceholderFeatureCanvasProvider()'
-  grep -Fq 'privacyURL: URL(string: "https://' Shell/App/ShellConfiguration.swift || fail "Privacy URL must use HTTPS"
-  grep -Fq 'termsURL: URL(string: "https://' Shell/App/ShellConfiguration.swift || fail "Terms URL must use HTTPS"
+  # A derived app may either inline its legal URLs directly (the template
+  # default) or source them from its own linked package, as GymDay does
+  # from GymDayLinks - validate whichever pattern is actually present.
+  if grep -Fq 'privacyURL: GymDayLinks.privacy' Shell/App/ShellConfiguration.swift; then
+    grep -Fq 'public static let privacy = URL(string: "https://' Vendor/gym-ios/GymDayEngine/Sources/GymDayCore/GymDayLinks.swift \
+      || fail "GymDayLinks.privacy must use HTTPS"
+  else
+    grep -Fq 'privacyURL: URL(string: "https://' Shell/App/ShellConfiguration.swift || fail "Privacy URL must use HTTPS"
+  fi
+  if grep -Fq 'termsURL: GymDayLinks.terms' Shell/App/ShellConfiguration.swift; then
+    grep -Fq 'public static let terms = URL(string: "https://' Vendor/gym-ios/GymDayEngine/Sources/GymDayCore/GymDayLinks.swift \
+      || fail "GymDayLinks.terms must use HTTPS"
+  else
+    grep -Fq 'termsURL: URL(string: "https://' Shell/App/ShellConfiguration.swift || fail "Terms URL must use HTTPS"
+  fi
 fi
 
 selected_mode="$(sed -n 's/.*mode: \.\([A-Za-z]*\).*/\1/p' Shell/App/ShellConfiguration.swift | head -1)"

@@ -1,3 +1,4 @@
+import GymDayCore
 import SwiftUI
 
 enum ShellConfiguration {
@@ -5,14 +6,12 @@ enum ShellConfiguration {
     /// #BC002D - researched and confirmed earlier as culturally appropriate
     /// for the Japanese market (kouhaku red/white pairing), not a default pick.
     static let tint = Color(red: 0.737, green: 0.0, blue: 0.176)
-    // TODO: replace with GymDay's real support address before release.
-    static let supportEmail = "support@example.com"
+    static let supportEmail = GymDayLinks.supportEmail
 
-    // TODO: replace with GymDay's real, published legal documents before release.
     static let legal = LegalConfiguration(
         version: "1",
-        privacyURL: URL(string: "https://example.com/#replace-with-privacy-policy")!,
-        termsURL: URL(string: "https://example.com/#replace-with-terms-of-use")!
+        privacyURL: GymDayLinks.privacy,
+        termsURL: GymDayLinks.terms
     )
 
     /// Set to nil when the product does not have a genuine onboarding need.
