@@ -18,6 +18,10 @@
     <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
+    <key>NSHealthShareUsageDescription</key>
+    <string>Apple Watchでのワークアウト記録と連携するために使用します。</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>完了したワークアウトをヘルスケアに保存するために使用します。</string>
     <key>UILaunchScreen</key>
     <dict>
         <key>UIColorName</key>

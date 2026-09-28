@@ -27,6 +27,9 @@ jobs:
         run: |
           xcodebuild -project Shell.xcodeproj -scheme Shell -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
           xcodebuild -project Shell.xcodeproj -scheme ShellAds -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+      - name: Build watch app
+        run: |
+          xcodebuild -project Shell.xcodeproj -scheme GymDayWatch -configuration Debug -sdk watchsimulator -destination 'generic/platform=watchOS Simulator' CODE_SIGNING_ALLOWED=NO build
       - name: Run unit tests
         run: |
           DEVICE_ID="$(xcrun simctl list devices available -j | ruby -rjson -e '
