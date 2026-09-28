@@ -3,7 +3,6 @@ import Observation
 @MainActor
 @Observable
 final class ShellModel {
-    var selectedDestination = ShellConfiguration.destinations.first?.id ?? ""
 #if DEBUG
     var contentState = SampleContentState.populated
 #endif
@@ -13,7 +12,6 @@ final class ShellModel {
 #endif
     var paywallPresented = false
     var manageSubscriptionsPresented = false
-    private(set) var isRequestingUpgrade = false
     var startupMessage: String?
 
     let access: AccessController
@@ -49,32 +47,16 @@ final class ShellModel {
         await access.purchases.start()
     }
 
-    /// Subscription entry points start the StoreKit purchase directly. The
-    /// app-owned paywall remains available for one-time purchases only.
+    /// Every new purchase goes through the shell sign-up surface first. It shows
+    /// the live App Store price and period before StoreKit asks for confirmation.
     func requestUpgrade() {
         guard access.configuration.includesPurchase else { return }
-        guard access.configuration.includesSubscription else {
-            paywallPresented = true
-            return
-        }
-        if case .billingRetry = access.purchases.subscriptionCondition {
+        if access.configuration.includesSubscription,
+           case .billingRetry = access.purchases.subscriptionCondition {
             manageSubscriptionsPresented = true
             return
         }
-        guard !isRequestingUpgrade, !access.purchases.isLoadingProducts else { return }
-        isRequestingUpgrade = true
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            defer { self.isRequestingUpgrade = false }
-            if self.access.purchases.primaryProduct == nil {
-                await self.access.purchases.start()
-            }
-            if self.access.purchases.primaryProduct != nil {
-                await self.access.purchases.purchasePrimary()
-            } else if !self.access.purchases.showingError {
-                await self.access.purchases.purchasePrimary()
-            }
-        }
+        paywallPresented = true
     }
 
     func prepareAdvertisingIfNeeded() async {
