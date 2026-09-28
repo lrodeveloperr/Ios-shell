@@ -27,7 +27,8 @@ struct OnboardingView: View {
                     Toggle(isOn: $accepted) {
                         Text("onboarding.accept")
                     }
-                    .toggleStyle(CheckboxToggleStyle())
+                    .toggleStyle(.checkbox)
+                    .frame(minHeight: 44, alignment: .leading)
                     .accessibilityHint(Text("onboarding.accept.hint"))
                     .accessibilityIdentifier("shell.onboarding.accept")
                 }
@@ -38,6 +39,15 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity)
                     .disabled(showsAcceptance && !accepted)
                     .accessibilityIdentifier("shell.onboarding.primary")
+
+                if profile == .guidedTour && !isReconsent && page < tourPages.count - 1 {
+                    Button("onboarding.skip") {
+                        withAnimation { page = tourPages.count - 1 }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
+                }
 
                 if profile == .guidedTour && page > 0 {
                     Button("back") { withAnimation { page -= 1 } }
@@ -53,6 +63,7 @@ struct OnboardingView: View {
                 }
                 .font(.footnote)
                 .foregroundStyle(.secondary)
+                .frame(minHeight: 44)
             }
             .frame(maxWidth: 640, minHeight: 540)
             .padding(28)
@@ -60,7 +71,6 @@ struct OnboardingView: View {
         }
         .sheet(item: $legalDocument) { document in
             LegalView(document: document)
-                .ignoresSafeArea()
         }
     }
 
@@ -108,24 +118,4 @@ struct OnboardingView: View {
 private struct OnboardingPage {
     let titleKey: LocalizedStringKey
     let messageKey: LocalizedStringKey
-}
-
-private struct CheckboxToggleStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        Button {
-            configuration.isOn.toggle()
-        } label: {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                    .font(.title2)
-                    .foregroundStyle(configuration.isOn ? Color.accentColor : .secondary)
-                configuration.label
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.leading)
-                Spacer(minLength: 0)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
 }
