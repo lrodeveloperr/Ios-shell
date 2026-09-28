@@ -14,11 +14,10 @@ struct SettingsView: View {
             if model.access.configuration.includesPurchase, shouldShowUpgrade {
                 Section {
                     Button {
-                        if model.access.configuration.includesSubscription { model.requestUpgrade() }
-                        else { showPaywall = true }
+                        showPaywall = true
                     } label: {
                         if model.access.configuration.includesSubscription {
-                            SettingsLabel(subscriptionActionKey, verbatimSubtitle: model.access.purchases.primaryProduct?.description, symbol: "sparkles")
+                            SettingsLabel("subscription.viewOffer", verbatimSubtitle: model.access.purchases.primaryProduct?.description, symbol: "sparkles")
                         } else {
                             SettingsLabel("upgrade", subtitle: "upgrade.subtitle", symbol: "sparkles")
                         }
@@ -52,7 +51,7 @@ struct SettingsView: View {
                         SettingsLabel("paywall.restore", symbol: "arrow.clockwise")
                     }
                     .buttonStyle(.plain)
-                    .disabled(model.access.purchases.isRestoring || model.isRequestingUpgrade || model.access.purchases.isPurchasing)
+                    .disabled(model.access.purchases.isRestoring || model.access.purchases.isPurchasing)
                     .accessibilityIdentifier("shell.settings.restore")
                 }
             }
@@ -69,22 +68,29 @@ struct SettingsView: View {
                 NavigationLink { LanguageView() } label: {
                     SettingsLabel("language", subtitle: languageSubtitle, symbol: "globe")
                 }
-                Link(destination: URL(string: "mailto:\(ShellConfiguration.supportEmail)")!) {
-                    SettingsLabel("support", subtitle: ShellConfiguration.supportEmail, symbol: "questionmark.circle")
+
+                if let supportURL {
+                    Link(destination: supportURL) {
+                        SettingsLabel("support", subtitle: ShellConfiguration.supportEmail, symbol: "questionmark.circle")
+                    }
                 }
+
                 if model.access.configuration.includesAdvertising && model.ads.isPrivacyOptionsRequired {
                     Button {
                         Task { await model.ads.presentPrivacyOptions() }
                     } label: {
                         SettingsLabel("privacyOptions", subtitle: "privacyOptions.subtitle", symbol: "hand.raised.square")
                     }
+                    .buttonStyle(.plain)
                 }
+
                 if model.access.configuration.includesAdvertising && model.ads.message != nil {
                     Button {
                         Task { await model.prepareAdvertisingIfNeeded() }
                     } label: {
                         SettingsLabel("privacyRetry", subtitle: "privacyRetry.subtitle", symbol: "arrow.clockwise")
                     }
+                    .buttonStyle(.plain)
                 }
             }
 
@@ -93,6 +99,7 @@ struct SettingsView: View {
                     SettingsLabel("privacyPolicy", symbol: "hand.raised")
                 }
                 .buttonStyle(.plain)
+
                 Button { legalDocument = .terms } label: {
                     SettingsLabel("termsOfUse", symbol: "doc.text")
                 }
@@ -107,6 +114,7 @@ struct SettingsView: View {
                 } label: {
                     SettingsLabel("shellLab", subtitle: "shellLab.subtitle", symbol: "testtube.2")
                 }
+                .buttonStyle(.plain)
             }
 #endif
 
@@ -114,7 +122,7 @@ struct SettingsView: View {
                 Text("settings.footer").font(.footnote).foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("settings")
+        .navigationTitle(Text(verbatim: AppLocalization.string("settings", locale: locale)))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("done") { dismiss() } } }
         .sheet(isPresented: $showPaywall) {
@@ -122,10 +130,10 @@ struct SettingsView: View {
                 .environment(model)
                 .environment(model.language)
                 .environment(\.locale, model.language.locale)
+                .environment(\.layoutDirection, model.language.layoutDirection)
         }
         .sheet(item: $legalDocument) { document in
             LegalView(document: document)
-                .ignoresSafeArea()
         }
         .manageSubscriptionsSheet(isPresented: $showingManageSubscriptions)
         .alert("store", isPresented: subscriptionErrorBinding) {
@@ -135,13 +143,8 @@ struct SettingsView: View {
         }
     }
 
-    private var subscriptionActionKey: LocalizedStringKey {
-        model.access.purchases.primaryProduct == nil ? "paywall.retryProduct" : "subscription.subscribe"
-    }
-
     private var subscriptionPurchaseIsBusy: Bool {
-        model.access.configuration.includesSubscription &&
-            (model.isRequestingUpgrade || model.access.purchases.isLoadingProducts)
+        model.access.configuration.includesSubscription && model.access.purchases.isLoadingProducts
     }
 
     private var subscriptionErrorBinding: Binding<Bool> {
@@ -152,7 +155,16 @@ struct SettingsView: View {
     }
 
     private var languageSubtitle: String {
-        ShellConfiguration.supportedLanguages.first { $0.id == model.language.selection }?.displayName ?? "Follow system"
+        ShellConfiguration.supportedLanguages.first { $0.id == model.language.selection }?.displayName
+            ?? ShellConfiguration.supportedLanguages.first(where: { $0.id == "system" })?.displayName
+            ?? "System"
+    }
+
+    private var supportURL: URL? {
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = ShellConfiguration.supportEmail
+        return components.url
     }
 
     private var shouldShowUpgrade: Bool {
@@ -239,6 +251,7 @@ private struct SettingsLabel: View {
 
 private struct LanguageView: View {
     @Environment(LanguageController.self) private var language
+    @Environment(\.locale) private var locale
 
     var body: some View {
         @Bindable var language = language
@@ -251,6 +264,6 @@ private struct LanguageView: View {
             .pickerStyle(.inline)
             Text("language.help").font(.footnote).foregroundStyle(.secondary)
         }
-        .navigationTitle("language")
+        .navigationTitle(Text(verbatim: AppLocalization.string("language", locale: locale)))
     }
 }
