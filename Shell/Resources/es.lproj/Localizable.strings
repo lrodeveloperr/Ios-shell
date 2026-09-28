@@ -7,10 +7,12 @@
 "back" = "Atrás";
 "continue" = "Continuar";
 "getStarted" = "Empezar";
+"onboarding.skip" = "Omitir introducción";
 "privacy" = "Privacidad";
 "terms" = "Condiciones";
 "upgrade" = "Mejorar";
 "subscription.subscribe" = "Suscribirse";
+"subscription.viewOffer" = "Ver suscripción";
 "store" = "Tienda";
 "advertisement" = "Anuncio";
 "access.checking" = "Comprobando el acceso de App Store…";
@@ -87,6 +89,7 @@
 "subscription.billingRetry" = "Se requiere el pago para recuperar el acceso";
 "subscription.offline %@" = "Verificada sin conexión hasta el %@";
 "language" = "Idioma";
+"language.system" = "Seguir el sistema";
 "support" = "Ayuda y soporte";
 "privacyOptions" = "Opciones de privacidad";
 "privacyOptions.subtitle" = "Revisa el consentimiento publicitario";
@@ -111,4 +114,9 @@
 "backup.localFirstNotice" = "Las copias son opcionales y usan el proveedor configurado para esta aplicación.";
 "backup.conflictNotice" = "Elige expresamente cómo debe tratar la restauración los datos existentes.";
 "backup.error" = "Error de copia de seguridad";
+"backup.working" = "Procesando…";
+"backup.replaceConfirm.title" = "¿Sustituir los datos del dispositivo?";
+"backup.replaceConfirm.message" = "Esto puede sobrescribir los datos existentes en este dispositivo. No se puede deshacer desde esta pantalla.";
+"backup.replaceConfirm.action" = "Sustituir los datos del dispositivo";
+"backup.cancel" = "Cancelar";
 "startup.error.title" = "Actualización necesaria";
