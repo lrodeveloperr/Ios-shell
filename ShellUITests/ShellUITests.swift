@@ -14,7 +14,7 @@ final class ShellUITests: XCTestCase {
         ]
         app.launch()
 
-        let acceptance = app.buttons["shell.onboarding.accept"]
+        let acceptance = app.descendants(matching: .any)["shell.onboarding.accept"]
         let primary = app.buttons["shell.onboarding.primary"]
         XCTAssertTrue(acceptance.waitForExistence(timeout: 5))
         XCTAssertFalse(primary.isEnabled)
@@ -22,7 +22,7 @@ final class ShellUITests: XCTestCase {
         XCTAssertTrue(primary.isEnabled)
     }
 
-    func testSubscriptionUpgradeSkipsAppOwnedPaywallAndKeepsRestore() {
+    func testSubscriptionUpgradeShowsTransparentSignUpBeforePurchase() {
         let app = launchPastOnboarding()
         app.buttons["shell.settings"].tap()
         XCTAssertTrue(app.buttons["shell.settings.restore"].waitForExistence(timeout: 5))
@@ -32,7 +32,8 @@ final class ShellUITests: XCTestCase {
         let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: upgrade)
         XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 15), .completed)
         upgrade.tap()
-        XCTAssertFalse(app.scrollViews["shell.paywall"].exists)
+        XCTAssertTrue(app.scrollViews["shell.paywall"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["shell.paywall.restore"].exists)
     }
 
     func testSettingsOpensWithoutTerminatingApp() {
@@ -55,6 +56,14 @@ final class ShellUITests: XCTestCase {
         }
     }
 
+    func testAdaptiveListDetailNavigationIsReachable() {
+        let app = launchPastOnboarding()
+        let firstItem = app.descendants(matching: .any)["shell.feature.item.1"]
+        XCTAssertTrue(firstItem.waitForExistence(timeout: 5))
+        firstItem.tap()
+        XCTAssertTrue(app.navigationBars["Item 1"].waitForExistence(timeout: 5))
+    }
+
     /// Run this same suite through the documented destination matrix. The source
     /// remains device-agnostic; CI destinations select compact iPhone and iPad.
     func testPrimaryControlsMeetMinimumHitTarget() {
@@ -65,7 +74,7 @@ final class ShellUITests: XCTestCase {
             "-shell.legal.acceptedVersion", "",
         ]
         app.launch()
-        let frame = app.buttons["shell.onboarding.accept"].frame
+        let frame = app.descendants(matching: .any)["shell.onboarding.accept"].frame
         XCTAssertGreaterThanOrEqual(frame.height, 44)
         XCTAssertGreaterThanOrEqual(frame.width, 44)
     }
