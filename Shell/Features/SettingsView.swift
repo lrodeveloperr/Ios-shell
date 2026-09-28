@@ -155,9 +155,11 @@ struct SettingsView: View {
     }
 
     private var languageSubtitle: String {
-        ShellConfiguration.supportedLanguages.first { $0.id == model.language.selection }?.displayName
-            ?? ShellConfiguration.supportedLanguages.first(where: { $0.id == "system" })?.displayName
-            ?? "System"
+        if model.language.selection == "system" {
+            return AppLocalization.string("language.system", locale: locale)
+        }
+        return ShellConfiguration.supportedLanguages.first { $0.id == model.language.selection }?.displayName
+            ?? AppLocalization.string("language.system", locale: locale)
     }
 
     private var supportURL: URL? {
@@ -258,7 +260,11 @@ private struct LanguageView: View {
         Form {
             Picker("language", selection: $language.selection) {
                 ForEach(ShellConfiguration.supportedLanguages) { option in
-                    Text(option.displayName).tag(option.id)
+                    if option.id == "system" {
+                        Text("language.system").tag(option.id)
+                    } else {
+                        Text(verbatim: option.displayName).tag(option.id)
+                    }
                 }
             }
             .pickerStyle(.inline)
