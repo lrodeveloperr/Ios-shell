@@ -65,8 +65,8 @@ Apple's current subscription guidance requires ongoing value and clear purchase 
 
 - Use one subscription group for one service unless customers genuinely need simultaneous subscriptions. A single monthly product needs one group and one level.
 - Configure the exact product identifier, one-month duration, availability, tax category, and intended starting price in App Store Connect.
-- Subscription buttons are price-free and invoke `Product.purchase()` directly. There is no app-owned subscription paywall; Apple’s confirmation sheet must present the current localized product name, renewal price, currency and period from App Store Connect before the customer confirms.
-- Configure the StoreKit product description to state the exact service unlocked; the shell shows it beside the direct entry points when available. Keep Privacy, Terms and Restore in Settings. Review the live system confirmation for full renewal price prominence, duration and any offer terms; do not hard-code a currency or manual conversion.
+- Subscription entry points open the shell commerce surface. It must show the current StoreKit product name, full localized renewal price and billing period prominently before the Subscribe control invokes `Product.purchase()` and Apple’s confirmation sheet.
+- Configure the StoreKit product description to state the exact service unlocked; the shell shows it on the commerce surface when available. Keep Privacy, Terms and Restore reachable before purchase and in Settings. Review both the app-owned offer surface and live system confirmation for accurate renewal price, duration and any offer terms; do not hard-code a currency or manual conversion.
 - Keep Restore Purchases, Privacy Policy, Terms of Use, subscription status, and Manage Subscription easy to find.
 - Localize the subscription group display name and the subscription display name/description for every storefront language claimed by the app.
 - Supply the subscription review screenshot and notes showing where the paywall is reached, the free limit, what Pro unlocks, and how Review can restore/test it.
@@ -82,7 +82,7 @@ Apple's current subscription guidance requires ongoing value and clear purchase 
 - Start the description with the clearest differentiator, then a short feature list in the audience's own terminology. Do not put a fixed subscription price in the description because storefront prices vary.
 - Use the 170-character promotional text for timely marketing, not keyword ranking. Keep the 100-character keyword field relevant, comma-separated and free of duplicate/plural/category/app terms, competitor names and unauthorized trademarks.
 - Ensure the privacy label covers the app and every embedded third-party SDK, and keep the required public privacy-policy URL current. Localize privacy URLs where matching documents exist; otherwise disclose the document language accurately.
-- Give App Review exact navigation steps to the free limit, direct subscription control, Restore Purchases, Manage Subscription and any state that needs setup. Include complete contact information and never submit broken links, placeholders or unfinished metadata.
+- Give App Review exact navigation steps to the free limit, subscription offer surface, Restore Purchases, Manage Subscription and any state that needs setup. Include complete contact information and never submit broken links, placeholders or unfinished metadata.
 - After release, use Product Page Optimization for controlled screenshot/icon/preview experiments rather than changing several conversion variables at once.
 
 Primary references:
