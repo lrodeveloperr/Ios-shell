@@ -6,7 +6,7 @@ Use this checklist for every app created from the shell. It records the failure 
 
 | Failure mode | Root cause | Upstream correction | Required derived-app evidence |
 |---|---|---|---|
-| Blank custom tab icon | A custom drawing was placed directly in `tabItem`; the native iPhone bar discarded it | Tab items must use one native `Label` with an SF Symbol or template asset | UI test confirms every visible tab button contains an image |
+| Blank custom tab icon | A custom drawing was placed directly in a tab label; the native iPhone bar discarded it | iOS 18 `Tab` labels must use one native `Label` with an SF Symbol or template asset | UI test confirms every visible tab button contains an image |
 | Settings crashes on presentation | A required observable environment value was not injected across the sheet boundary | Root sheets re-inject model, language and locale; Settings receives its model explicitly | Open and dismiss Settings on compact iPhone and iPad |
 | Banner collides with the tab bar | The ad safe-area was applied outside the destination or forced to a guessed height | Each destination owns a bottom safe-area slot sized from the Mobile Ads SDK | Test consent states and rotation with the native tab bar fully visible |
 | Generic purchase draft ships | Template title, benefits or store name were treated as final product copy | Release checks reject known placeholders; the purchase action, errors and retry state are localized | Paywall names exact paid benefits and shows StoreKit price/period |
