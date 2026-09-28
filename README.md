@@ -8,13 +8,13 @@ Start with [`AGENTS.md`](AGENTS.md). It is the operational source map for the lo
 
 ## Stable architecture
 
-- Adaptive native `TabView`: one destination has no tab bar; two to five destinations adapt from iPhone tabs to iPad sidebar.
+- Native iOS 18 `Tab(value:content:label:)` navigation: two to five destinations use `.sidebarAdaptable`, while one destination omits top-level tabs. Top-level selection is restored per scene.
 - Optional legal-only, single-screen, or guided onboarding. Set it to `nil` for direct product launch; every enabled profile ends with one explicit acceptance checkbox.
 - Legal acceptance version is stored separately from onboarding completion. Incrementing `legal.version` forces re-consent.
 - Eight monetization profiles: free, ads, ads with removal purchase, ads with subscription, one-time unlock, subscription, usage cap with one-time unlock, and usage cap with subscription.
 - The shell checks access before composing the injected feature canvas, so paid and exhausted-cap functionality cannot appear behind an advisory callback.
 - Successful usage is counted only after completion, keyed by a stable product-owned identifier of at most 128 UTF-8 bytes, persisted, and deduplicated.
-- StoreKit 2 verification, transaction updates, restore, revocation/expiry handling, and a Keychain offline snapshot whose subscriptions stop at their verified expiry.
+- StoreKit 2 verification, transaction updates, restore, revocation/expiry handling, and a Keychain offline snapshot whose subscriptions stop at their verified expiry. Paid offers use live StoreKit pricing; subscriptions show renewal price and period before Apple confirmation.
 - Google UMP consent runs before Google Mobile Ads initialization or any ad request. Required privacy choices remain available in Settings.
 - In-app language switching changes the SwiftUI locale immediately and persists.
 - Debug-only Shell Lab, automated validation, executed unit tests, and guarded TestFlight upload.
@@ -23,7 +23,7 @@ Both GitHub Actions workflows are manual-only so routine commits and pull reques
 
 ## Derive an app
 
-1. Implement `FeatureCanvasProviding` and inject it in `ShellApp`. The shell composes it only when access is allowed; feature code calls `recordSuccessfulAction` only after a confirmed successful capped action.
+1. Implement `FeatureCanvasProviding` and inject it in `ShellApp`. The shell composes it only when access is allowed; feature code calls `recordSuccessfulAction` only after a confirmed successful capped action. For list-detail products, optionally implement `makeSplitCanvas`; the shell supplies `NavigationSplitView` and per-scene selection restoration.
 2. Configure identity, destinations, whether onboarding is needed, legal version/URLs, monetization, product IDs, languages, and advertising in `ShellConfiguration.swift` and `project.yml`.
 3. Replace the app icon and the reviewed legal text in every shipped localization.
 4. If advertising is enabled, replace both Google demo IDs and complete the AdMob/UMP messages and privacy declarations for the derived app.
