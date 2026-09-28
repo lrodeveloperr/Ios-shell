@@ -227,6 +227,16 @@ final class GymDayStore {
         activeWorkoutError = nil
     }
 
+    private(set) var progressReport: ProgressAnalyticsReport?
+
+    /// The engine resolves advanced-history length from entitlement itself
+    /// (`EntitlementPolicy.decision(for: .advancedAnalytics, ...)`), so this
+    /// doesn't need to know the current tier.
+    func loadProgress() async {
+        guard let engine else { return }
+        progressReport = await engine.progressAnalytics(now: Date())
+    }
+
     /// Bridges the shell's verified StoreKit state into the engine's own
     /// entitlement vocabulary. Deliberately binary (free/pro): GymDayCore's
     /// richer `.expired` + `currentWeekGraceThrough` soft-landing policy

@@ -151,3 +151,5 @@
 "activeWorkout.logSet" = "Log set";
 "activeWorkout.updateSet" = "Update set";
 "activeWorkout.setLogged" = "Logged";
+
+"progress.needsSetup" = "Create a program from the Today tab first";

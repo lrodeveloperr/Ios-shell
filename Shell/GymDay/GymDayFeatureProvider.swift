@@ -6,10 +6,14 @@ import SwiftUI
 /// still a live placeholder - separate, not-yet-started work.
 struct GymDayFeatureProvider: FeatureCanvasProviding {
     func makeCanvas(for destination: ShellDestination, context: FeatureCanvasContext) -> AnyView {
-        if destination.id == "today" {
+        switch destination.id {
+        case "today":
             return AnyView(TodayRouterView())
+        case "progress":
+            return AnyView(ProgressRouterView())
+        default:
+            return AnyView(GymDayDestinationPlaceholder(destination: destination))
         }
-        return AnyView(GymDayDestinationPlaceholder(destination: destination))
     }
 }
 
@@ -34,6 +38,20 @@ private struct TodayRouterView: View {
         } else {
             ProgressView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+}
+
+/// Routes "progress" to the real report once a profile exists; before that
+/// there's nothing to analyze yet.
+private struct ProgressRouterView: View {
+    @Environment(GymDayStore.self) private var store
+
+    var body: some View {
+        if let snapshot = store.snapshot, !snapshot.profiles.isEmpty {
+            GymDayProgressView()
+        } else {
+            ContentUnavailableView("progress.needsSetup", systemImage: "chart.bar")
         }
     }
 }

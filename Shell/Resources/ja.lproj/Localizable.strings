@@ -151,3 +151,5 @@
 "activeWorkout.logSet" = "セットを記録";
 "activeWorkout.updateSet" = "セットを更新";
 "activeWorkout.setLogged" = "記録済み";
+
+"progress.needsSetup" = "まずは「今日」タブでプログラムを作成してください";
