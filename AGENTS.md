@@ -80,7 +80,7 @@ Do not redesign settled shell UI while implementing the product canvas.
 - A stable action ID represents one completed domain operation and must be at most 128 UTF-8 bytes.
 - Record success after persistence succeeds, never on button press, form opening, validation failure or retry.
 - Reusing the same ID must be safe; `UsageLedger` deduplicates it.
-- Call the shell-owned `requestUpgrade` action when access is exhausted. Subscription modes open Apple’s purchase confirmation directly; one-time modes retain the shell paywall.
+- Call the shell-owned `requestUpgrade` action when access is exhausted. Every paid mode enters the shell commerce surface first. Subscription offers must show the live StoreKit product name, full localized renewal price and billing period before the user invokes Apple’s confirmation; one-time offers show the live App Store price there as well.
 - Product code must not read or mutate StoreKit or Keychain entitlement state directly.
 
 ## Monetization modes
@@ -130,7 +130,7 @@ Usage-cap, one-time-unlock, ad-free subscription and free profiles do not show t
 - A lapse must not delete, silently archive, or conceal customer data. Document which records remain manageable, keep excess data viewable/exportable where feasible, and permit limit-reducing actions without payment.
 - Billing-retry UI routes to Apple subscription management instead of offering a duplicate purchase. Subscription apps expose truthful current status and Apple's management surface only when the verified customer state makes that action relevant.
 - Do not render a fake inactive subscription card. Settings shows a neutral checking row while StoreKit resolves; hides subscription status and Manage Subscription when the verified state is absent, expired or revoked; and offers management only for active, grace, billing-retry or still-valid offline-cached states. Icons must reflect the state instead of showing a success seal for every condition.
-- Subscription buttons contain no price and open the StoreKit purchase confirmation without an app-owned intermediate page. Apple’s confirmation must show the current localized product name, full price, currency and period from App Store Connect; show the StoreKit product description beside the shell’s direct entry points and configure that localized description to name the exact paid benefit. Never hard-code a storefront price.
+- Subscription entry points open the shell commerce surface before purchase. That surface must show the current StoreKit product name, exact paid benefit, full localized renewal price and billing period prominently, keep Restore plus Privacy and Terms reachable, and only then invoke Apple’s confirmation. Never hard-code a storefront price or billing period.
 - Keychain usage records are durable, bounded and deduplicated.
 - Shell Lab and entitlement overrides must remain inside `#if DEBUG`.
 
@@ -143,13 +143,14 @@ All onboarding, Settings and paywall legal controls must resolve from `ShellConf
 ## Navigation and adaptation
 
 - Configure one to five destinations.
-- One destination uses a native `NavigationStack` without a tab bar.
-- Two to five destinations use adaptive `TabView`; iPhone shows tabs and wider iPad layouts may promote to a sidebar.
-- Every `.tabItem` must be a single native `Label` backed by either a valid SF Symbol (`systemImage:`) or a template-rendered asset-catalog image (`image:`).
-- Never place a custom `View`, `Canvas`, `Shape`, drawing closure or composed stack directly in `.tabItem`; the native iPhone tab bar may discard it and leave a blank icon. A custom destination icon belongs in `Assets.xcassets` and must be referenced through `Label(..., image:)`.
-- A tab-bar UI test must verify that every visible tab button contains an image. Seeing a custom icon inside the product canvas is not evidence that it renders in the native tab bar.
+- Two to five top-level destinations use the iOS 18 `Tab(value:content:label:)` API inside `TabView(selection:)` with `.sidebarAdaptable`; one destination omits top-level tabs.
+- Persist the selected top-level destination with `@SceneStorage` so each scene returns to the user’s last section.
+- The shell owns navigation containers. Conventional products use its `NavigationStack`; list-detail products optionally implement `makeSplitCanvas` and receive a shell-owned `NavigationSplitView` that collapses naturally on iPhone and compact iPad widths.
+- Split selection uses stable product-owned string identifiers and `@SceneStorage`; never replace this with device-model checks or a hard-coded width breakpoint.
+- Every `Tab` label must be a single native `Label` backed by a valid SF Symbol or template-rendered asset-catalog image. Never place a custom `View`, `Canvas`, `Shape`, drawing closure or composed stack directly in the tab label.
+- A tab-bar UI test must verify that every visible tab button contains an image, and an iPad regression must verify list-detail selection reaches the detail column.
 - Preserve safe-area insets and avoid device-model checks.
-- The feature canvas owns product content, not global navigation.
+- The feature canvas owns product content; the shell owns top-level tabs and navigation containers.
 
 ## Interaction reliability and touchscreen gate
 
@@ -189,7 +190,7 @@ All onboarding, Settings and paywall legal controls must resolve from `ShellConf
 
 A derived release must not ship with template identity, example URLs, support email, demo product IDs, Google test ad IDs, placeholder legal text, placeholder icon references or the sample provider.
 
-The one-time paywall is app code, not a reusable marketing draft. A release using it must replace generic title, explanation and benefits in every shipped localization. Subscription modes bypass that page: the access gate, feature upgrade request and Settings open the Apple purchase sheet in one tap. Keep the exact paid benefit clear in the app and confirm Apple’s sheet displays the current localized price and period before submission.
+The commerce surface is app code, not a reusable marketing draft. Every paid release must replace its generic title, explanation and benefits in every shipped localization. Subscription modes use that surface to present the live StoreKit renewal price, billing period and exact paid benefit before the Subscribe control invokes Apple’s purchase confirmation. Confirm both the app-owned offer screen and Apple’s sheet display accurate localized terms before submission.
 
 When execution is authorized, the release checks are:
 
