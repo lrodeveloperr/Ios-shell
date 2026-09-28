@@ -25,9 +25,16 @@ final class AdConsentService {
             try await ConsentForm.loadAndPresentIfRequired(from: nil)
             updateStateAndStartIfAllowed()
         } catch {
-            canRequestAds = false
-            preparationAttempted = false
+            // UMP may still have a usable decision from a previous session even
+            // when the current consent-info refresh fails. Re-read the SDK state
+            // instead of unconditionally suppressing otherwise permitted ads.
+            canRequestAds = ConsentInformation.shared.canRequestAds
             isPrivacyOptionsRequired = ConsentInformation.shared.privacyOptionsRequirementStatus == .required
+            if canRequestAds, !initializationComplete {
+                initializationComplete = true
+                MobileAds.shared.start()
+            }
+            preparationAttempted = false
             message = error.localizedDescription
         }
     }
