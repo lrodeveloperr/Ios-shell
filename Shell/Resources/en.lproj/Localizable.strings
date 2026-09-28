@@ -7,10 +7,12 @@
 "back" = "Back";
 "continue" = "Continue";
 "getStarted" = "Get started";
+"onboarding.skip" = "Skip intro";
 "privacy" = "Privacy";
 "terms" = "Terms";
 "upgrade" = "Upgrade";
 "subscription.subscribe" = "Subscribe";
+"subscription.viewOffer" = "View subscription";
 "store" = "Store";
 "advertisement" = "Advertisement";
 "access.checking" = "Checking App Store access…";
@@ -87,6 +89,7 @@
 "subscription.billingRetry" = "Payment required to restore access";
 "subscription.offline %@" = "Verified offline until %@";
 "language" = "Language";
+"language.system" = "Follow system";
 "support" = "Help & support";
 "privacyOptions" = "Privacy choices";
 "privacyOptions.subtitle" = "Review advertising consent";
@@ -111,4 +114,9 @@
 "backup.localFirstNotice" = "Backups are optional and use the provider configured for this app.";
 "backup.conflictNotice" = "Choose explicitly how a restore handles existing device data.";
 "backup.error" = "Backup error";
+"backup.working" = "Working…";
+"backup.replaceConfirm.title" = "Replace device data?";
+"backup.replaceConfirm.message" = "This can overwrite existing data on this device. This action can’t be undone from this screen.";
+"backup.replaceConfirm.action" = "Replace device data";
+"backup.cancel" = "Cancel";
 "startup.error.title" = "Update required";
