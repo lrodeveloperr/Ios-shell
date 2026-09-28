@@ -1,10 +1,21 @@
 import SwiftUI
 
 /// The only boundary a derived app replaces. Product modules receive shell
-/// access services without owning navigation, billing, ads, legal, or settings.
+/// access services without owning billing, ads, legal, settings or top-level tabs.
 @MainActor
 protocol FeatureCanvasProviding {
     func makeCanvas(for destination: ShellDestination, context: FeatureCanvasContext) -> AnyView
+
+    /// Return a split canvas for list-detail products. The shell owns the
+    /// NavigationSplitView so iPhone collapse and iPad multi-column behavior stay
+    /// consistent across derived apps. Return nil for a conventional stack.
+    func makeSplitCanvas(for destination: ShellDestination, context: FeatureCanvasContext) -> FeatureSplitCanvas?
+}
+
+extension FeatureCanvasProviding {
+    func makeSplitCanvas(for destination: ShellDestination, context: FeatureCanvasContext) -> FeatureSplitCanvas? {
+        nil
+    }
 }
 
 struct FeatureCanvasContext {
@@ -13,58 +24,122 @@ struct FeatureCanvasContext {
     let requestUpgrade: () -> Void
 }
 
+/// Type-erased two-column feature contract. Selection is a stable product-owned
+/// String so the shell can restore it per scene without knowing domain types.
+struct FeatureSplitCanvas {
+    let sidebar: (_ selection: Binding<String?>) -> AnyView
+    let detail: (_ selection: String?) -> AnyView
+}
+
 struct PlaceholderFeatureCanvasProvider: FeatureCanvasProviding {
     func makeCanvas(for destination: ShellDestination, context: FeatureCanvasContext) -> AnyView {
         AnyView(FeatureView(destination: destination, context: context))
+    }
+
+    func makeSplitCanvas(for destination: ShellDestination, context: FeatureCanvasContext) -> FeatureSplitCanvas? {
+        FeatureSplitCanvas(
+            sidebar: { selection in
+                AnyView(FeatureSplitSidebar(destination: destination, context: context, selection: selection))
+            },
+            detail: { selection in
+                AnyView(FeatureSplitDetail(selection: selection))
+            }
+        )
     }
 }
 
 struct FeatureCanvasHost: View {
     let destination: ShellDestination
     let provider: any FeatureCanvasProviding
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(ShellModel.self) private var model
+    @SceneStorage private var splitSelection: String?
+
+    init(destination: ShellDestination, provider: any FeatureCanvasProviding) {
+        self.destination = destination
+        self.provider = provider
+        _splitSelection = SceneStorage(wrappedValue: nil, "shell.splitSelection.\(destination.id)")
+    }
 
     @ViewBuilder
     var body: some View {
         switch model.access.decision {
         case .allowed:
-            provider.makeCanvas(
-                for: destination,
-                context: FeatureCanvasContext(
-                    remainingFreeActions: { model.access.remainingFreeActions },
-                    recordSuccessfulAction: { model.access.recordSuccessfulAction(id: $0) },
-                    requestUpgrade: { model.requestUpgrade() }
-                )
-            )
+            allowedCanvas
         case .checkingEntitlement:
-            ProgressView("access.checking")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .accessibilityLabel(Text("access.checking"))
+            navigationStack {
+                ProgressView("access.checking")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .accessibilityLabel(Text("access.checking"))
+            }
         case .purchaseRequired:
-            LockedFeatureView(
-                titleKey: "access.purchase.title",
-                messageKey: "access.purchase.message",
-                onUpgrade: { model.requestUpgrade() },
-                actionKey: upgradeActionKey,
-                productDescription: subscriptionProductDescription,
-                isBusy: upgradeIsBusy
-            )
+            navigationStack {
+                LockedFeatureView(
+                    titleKey: "access.purchase.title",
+                    messageKey: "access.purchase.message",
+                    onUpgrade: { model.requestUpgrade() },
+                    actionKey: upgradeActionKey,
+                    productDescription: subscriptionProductDescription,
+                    isBusy: upgradeIsBusy
+                )
+            }
         case .usageLimitReached:
-            LockedFeatureView(
-                titleKey: "access.limit.title",
-                messageKey: "access.limit.message",
-                onUpgrade: { model.requestUpgrade() },
-                actionKey: upgradeActionKey,
-                productDescription: subscriptionProductDescription,
-                isBusy: upgradeIsBusy
-            )
+            navigationStack {
+                LockedFeatureView(
+                    titleKey: "access.limit.title",
+                    messageKey: "access.limit.message",
+                    onUpgrade: { model.requestUpgrade() },
+                    actionKey: upgradeActionKey,
+                    productDescription: subscriptionProductDescription,
+                    isBusy: upgradeIsBusy
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var allowedCanvas: some View {
+        let context = featureContext
+        if let split = provider.makeSplitCanvas(for: destination, context: context) {
+            NavigationSplitView {
+                split.sidebar($splitSelection)
+                    .navigationTitle(Text(LocalizedStringKey(destination.titleKey)))
+                    .shellSettingsToolbar()
+                    .accessibilityIdentifier("shell.feature.split.sidebar")
+            } detail: {
+                NavigationStack {
+                    split.detail(splitSelection)
+                        .shellSettingsToolbar(isEnabled: horizontalSizeClass == .compact)
+                        .accessibilityIdentifier("shell.feature.split.detail")
+                }
+            }
+        } else {
+            navigationStack {
+                provider.makeCanvas(for: destination, context: context)
+            }
+        }
+    }
+
+    private var featureContext: FeatureCanvasContext {
+        FeatureCanvasContext(
+            remainingFreeActions: { model.access.remainingFreeActions },
+            recordSuccessfulAction: { model.access.recordSuccessfulAction(id: $0) },
+            requestUpgrade: { model.requestUpgrade() }
+        )
+    }
+
+    private func navigationStack<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        NavigationStack {
+            content()
+                .navigationTitle(Text(LocalizedStringKey(destination.titleKey)))
+                .shellSettingsToolbar()
         }
     }
 
     private var upgradeActionKey: LocalizedStringKey {
         guard model.access.configuration.includesSubscription else { return "upgrade" }
         if case .billingRetry = model.access.purchases.subscriptionCondition { return "subscription.manage" }
-        return model.access.purchases.primaryProduct == nil ? "paywall.retryProduct" : "subscription.subscribe"
+        return "subscription.viewOffer"
     }
 
     private var subscriptionProductDescription: String? {
@@ -74,8 +149,7 @@ struct FeatureCanvasHost: View {
     }
 
     private var upgradeIsBusy: Bool {
-        model.access.configuration.includesSubscription &&
-            (model.isRequestingUpgrade || model.access.purchases.isLoadingProducts)
+        model.access.configuration.includesSubscription && model.access.purchases.isLoadingProducts
     }
 }
 
