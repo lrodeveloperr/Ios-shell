@@ -58,7 +58,7 @@ struct FeatureCanvasHost: View {
     init(destination: ShellDestination, provider: any FeatureCanvasProviding) {
         self.destination = destination
         self.provider = provider
-        _splitSelection = SceneStorage(wrappedValue: nil, "shell.splitSelection.\(destination.id)")
+        _splitSelection = SceneStorage("shell.splitSelection.\(destination.id)")
     }
 
     @ViewBuilder
