@@ -11,7 +11,11 @@ enum AppLocalization {
 
     static var selectedLocale: Locale {
         let selection = UserDefaults.standard.string(forKey: "shell.language") ?? "system"
-        return selection == "system" ? .autoupdatingCurrent : Locale(identifier: selection)
+        let identifier = SupportedLocaleResolver.localeIdentifier(
+            selection: selection,
+            preferredLanguages: Locale.preferredLanguages
+        )
+        return Locale(identifier: identifier)
     }
 
     private static func resourceLanguage(for locale: Locale) -> String {
