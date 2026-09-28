@@ -25,7 +25,7 @@ struct ShellLabView: View {
             Section("Responsive checks") {
                 LabeledContent("Compact", value: "Tab bar")
                 LabeledContent("Regular", value: "Sidebar-adaptable tabs")
-                LabeledContent("Detail", value: "Split at 700 pt")
+                LabeledContent("Detail", value: "NavigationSplitView · automatic collapse")
                 LabeledContent("Ad", value: model.shouldRenderAd ? "Consent granted; reserved inset" : "Not requested")
             }
             Section {
