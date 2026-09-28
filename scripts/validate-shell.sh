@@ -18,9 +18,15 @@ for path in project.yml AGENTS.md docs/APPLE_STORE_COMPLIANCE.md docs/DERIVED_AP
   require_file "$path"
 done
 
-if rg -n 'import (Flutter|React|ReactNative)|FlutterViewController|RCTRootView' Shell; then
-  fail "Cross-platform runtime detected; this shell must remain native Swift/SwiftUI"
+if command -v rg >/dev/null 2>&1; then
+  cross_platform_hits="$(rg -n 'import (Flutter|React|ReactNative)|FlutterViewController|RCTRootView' Shell || true)"
+else
+  cross_platform_hits="$(grep -R -En 'import (Flutter|React|ReactNative)|FlutterViewController|RCTRootView' Shell || true)"
 fi
+[[ -z "$cross_platform_hits" ]] || {
+  printf '%s\n' "$cross_platform_hits" >&2
+  fail "Cross-platform runtime detected; this shell must remain native Swift/SwiftUI"
+}
 
 bash scripts/check-commerce-branding.sh
 python3 scripts/validate-localizations.py
@@ -45,6 +51,9 @@ require_text Shell/Services/AdConsentService.swift 'ConsentForm.loadAndPresentIf
 require_text Shell/App/ShellRootView.swift '.safeAreaInset(edge: .bottom, spacing: 0) { adBanner }'
 require_text Shell/Services/AdaptiveAdBanner.swift '.frame(height: adSize.size.height)'
 require_text Shell/Features/PaywallView.swift 'paywall.retryProduct'
+require_text Shell/Features/PaywallView.swift 'product.displayPrice'
+require_text Shell/Features/PaywallView.swift 'subscription.subscriptionPeriod'
+require_text Shell/Features/PaywallView.swift 'paywall.subscriptionDisclosure'
 require_text Shell/Services/LanguageController.swift 'supported.contains(stored)'
 require_text Shell/Services/LanguageController.swift 'SupportedLocaleResolver.isRightToLeft'
 require_text Shell/App/ShellRootView.swift '.environment(\.layoutDirection, model.language.layoutDirection)'
@@ -61,6 +70,7 @@ reject_text .github/workflows/welding-wallet-screenshot-testflight.yml 'ca-app-p
 reject_text .github/workflows/welding-wallet-screenshot-testflight.yml 'UPLOAD WELDING WALLET PRODUCTION TEST'
 reject_text Shell/Features/SettingsView.swift 'NavigationLink { PaywallView() }'
 require_text Shell/Features/OnboardingView.swift 'Toggle(isOn: $accepted)'
+require_text Shell/Features/OnboardingView.swift '.toggleStyle(.checkbox)'
 require_text Shell/Services/LegalConsentStore.swift 'acceptedLegalVersion'
 require_text Shell/App/ShellConfiguration.swift 'static let onboarding: OnboardingProfile?'
 require_text Shell/App/ShellRootView.swift 'if let onboarding = ShellConfiguration.onboarding'
@@ -69,7 +79,12 @@ require_text Shell/Services/UsageLedger.swift 'KeychainUsageStore'
 require_text Shell/Services/UsageLedger.swift 'revised.insert(id)'
 require_text Shell/Services/UsageLedger.swift 'id.utf8.count <= 128'
 require_text Shell/App/FeatureCanvasBoundary.swift 'switch model.access.decision'
-require_text Shell/App/ShellRootView.swift '.tabItem { Label('
+require_text Shell/App/FeatureCanvasBoundary.swift 'NavigationSplitView {'
+require_text Shell/App/FeatureCanvasBoundary.swift '@SceneStorage private var splitSelection: String?'
+require_text Shell/App/ShellRootView.swift '@SceneStorage("shell.selectedDestination")'
+require_text Shell/App/ShellRootView.swift 'Tab(value: destination.id)'
+reject_text Shell/Features/FeatureView.swift 'geometry.size.width >= 700'
+reject_text Shell/Features/FeatureView.swift 'GeometryReader {'
 require_text Shell/App/ShellRootView.swift 'SettingsView(model: model)'
 require_text Shell/Features/ShellLabView.swift '#if DEBUG'
 require_text Shell/Features/SettingsView.swift '#if DEBUG'
@@ -77,8 +92,13 @@ require_text Shell/Features/SettingsView.swift 'SubscriptionSettingsPresentation
 require_text Shell/Features/SettingsView.swift 'shell.settings.subscription.manage'
 require_text Shell/Features/SettingsView.swift '.buttonStyle(.plain)'
 require_text Shell/App/ShellModel.swift '#if DEBUG'
+require_text Shell/App/ShellModel.swift 'paywallPresented = true'
+reject_text Shell/App/ShellModel.swift 'purchasePrimary()'
 require_text Shell/App/ShellContract.swift 'currentVersion = "2.0.0"'
 require_text Shell/App/ShellConfiguration.swift 'BackupConfiguration(enabled: false)'
+require_text Shell/Features/BackupSettingsView.swift '.confirmationDialog('
+require_text Shell/Services/AdConsentService.swift 'ConsentInformation.shared.canRequestAds'
+require_text .github/workflows/ios.yml 'Run iPad adaptive navigation regression'
 
 plutil -lint Shell/Resources/Info.plist >/dev/null
 plutil -lint Shell/Resources/Info-Ads.plist >/dev/null
