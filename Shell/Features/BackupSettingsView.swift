@@ -8,6 +8,10 @@ struct BackupSettingsView: View {
             Section {
                 Button("backup.create") { Task { await model.backup.create() } }
                     .disabled(model.backup.isWorking)
+
+                if model.backup.isWorking {
+                    ProgressView("backup.working")
+                }
             } footer: {
                 Text("backup.localFirstNotice")
             }
@@ -23,9 +27,11 @@ struct BackupSettingsView: View {
                             VStack(alignment: .leading) {
                                 Text(record.createdAt, format: .dateTime)
                                 Text(ByteCountFormatter.string(fromByteCount: record.byteCount, countStyle: .file))
-                                    .font(.caption).foregroundStyle(.secondary)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                         }
+                        .disabled(model.backup.isWorking)
                     }
                 }
             }
@@ -46,6 +52,7 @@ struct BackupSettingsView: View {
 
 private struct BackupRestoreView: View {
     @Environment(ShellModel.self) private var model
+    @State private var confirmsReplace = false
     let record: BackupRecord
 
     var body: some View {
@@ -54,13 +61,32 @@ private struct BackupRestoreView: View {
                 Button("backup.keepDevice") {
                     Task { await model.backup.restore(record, resolution: .keepDevice) }
                 }
+                .disabled(model.backup.isWorking)
+
                 Button("backup.replaceDevice", role: .destructive) {
-                    Task { await model.backup.restore(record, resolution: .replaceDevice) }
+                    confirmsReplace = true
+                }
+                .disabled(model.backup.isWorking)
+
+                if model.backup.isWorking {
+                    ProgressView("backup.working")
                 }
             } footer: {
                 Text("backup.conflictNotice")
             }
         }
         .navigationTitle("backup.restore")
+        .confirmationDialog(
+            "backup.replaceConfirm.title",
+            isPresented: $confirmsReplace,
+            titleVisibility: .visible
+        ) {
+            Button("backup.replaceConfirm.action", role: .destructive) {
+                Task { await model.backup.restore(record, resolution: .replaceDevice) }
+            }
+            Button("backup.cancel", role: .cancel) {}
+        } message: {
+            Text("backup.replaceConfirm.message")
+        }
     }
 }
