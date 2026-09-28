@@ -140,9 +140,33 @@ final class ShellTests: XCTestCase {
         XCTAssertEqual(language.selection, "system")
         XCTAssertEqual(LanguageController.closestSupported(to: "es-MX"), "es")
         XCTAssertEqual(LanguageController.closestSupported(to: "fr-CA"), "en")
+        XCTAssertEqual(
+            SupportedLocaleResolver.localeIdentifier(selection: "system", preferredLanguages: ["es-MX"]),
+            "es-MX"
+        )
+        XCTAssertEqual(
+            SupportedLocaleResolver.localeIdentifier(selection: "system", preferredLanguages: ["ar-SA"]),
+            "en"
+        )
+        XCTAssertEqual(
+            SupportedLocaleResolver.resolvedLanguageIdentifier(selection: "system", preferredLanguages: ["ar-SA"]),
+            "en"
+        )
         XCTAssertTrue(SupportedLocaleResolver.isRightToLeft("ar-SA"))
         XCTAssertTrue(SupportedLocaleResolver.isRightToLeft("ur_PK"))
         XCTAssertFalse(SupportedLocaleResolver.isRightToLeft("en-US"))
+    }
+
+    func testPlaceholderProviderUsesNativeSplitContract() {
+        guard let destination = ShellConfiguration.destinations.first else {
+            return XCTFail("Template must have at least one destination")
+        }
+        let context = FeatureCanvasContext(
+            remainingFreeActions: { 3 },
+            recordSuccessfulAction: { _ in .recorded(remaining: 2) },
+            requestUpgrade: {}
+        )
+        XCTAssertNotNil(PlaceholderFeatureCanvasProvider().makeSplitCanvas(for: destination, context: context))
     }
 
     func testSafeTemplateDefaultsAndSharedLocalizationContract() {
