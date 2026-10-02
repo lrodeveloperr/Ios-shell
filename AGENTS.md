@@ -230,3 +230,12 @@ Only an intentionally ad-supported app uses `ShellAds`, `Info-Ads.plist`, and an
 - Backup is disabled by default and has no entitlement. Enable it only with an app-owned `NativeBackupProviding` implementation, reviewed privacy disclosures, versioned serialization and recoverable conflict handling. Decode untrusted backups into temporary state, validate IDs/references/values, discard any entitlement, and commit atomically. When the product can safely represent paid-era over-limit data as locked/read-only, preserve it and apply the current policy after restore; otherwise reject before mutation. Never partially restore or unlock paid access from backup metadata.
 - Complete `docs/DERIVED_APP_RELEASE_WIRING.md` before every TestFlight production-logic build and storefront submission. Code, final archive, policies and App Store Connect metadata must describe the same product.
 - Record the adopted `ShellContract.currentVersion`. A breaking adoption requires ordered, idempotent `ShellMigration` steps; never erase data or silently skip a missing step.
+
+## Apple account safety
+
+Before any App Store submission, TestFlight-to-review handoff, listing push, or response to App Review, read `docs/APPLE_ACCOUNT_SAFETY_STANDARD.md` and follow `skills/apple-release-safety/SKILL.md`.
+
+An ordinary App Review rejection is handled as feedback: preserve the message, fix or clarify the underlying issue, re-run the release gate, and resubmit. Do not hide functionality, create reviewer-only behavior, manipulate reviews/rankings, or use another developer account to circumvent enforcement.
+
+Every review submission must create/update a copy of `templates/APPLE_REVIEW_EVIDENCE.md` with the build, commit, metadata/privacy/IAP parity checks, 4.3 distinction rationale, and App Review outcome. Never put credentials or private keys in that record.
+
