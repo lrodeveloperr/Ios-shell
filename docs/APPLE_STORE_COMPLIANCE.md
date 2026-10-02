@@ -82,3 +82,10 @@ Do not mark a family N/A as a whole. Review its current subsections. Examples th
 - Review access/sample data supplied:
 - App-specific guideline exceptions or N/A reasons:
 - Reviewer and final result:
+
+## Account-safety layer
+
+This app-level gate operates together with `docs/APPLE_ACCOUNT_SAFETY_STANDARD.md` and `skills/apple-release-safety/SKILL.md`.
+
+Before submission, also confirm reviewer/user parity, Guideline 4.3 product distinction, account/identity consistency, supported submission interfaces, and creation of the release evidence record from `templates/APPLE_REVIEW_EVIDENCE.md`. Ordinary rejections are handled through the documented fix/respond/resubmit protocol; never circumvent review or move the app to another developer account to evade enforcement.
+
